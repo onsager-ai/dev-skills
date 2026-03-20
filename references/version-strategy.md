@@ -128,7 +128,7 @@ package.json: 0.2.16 (already bumped)
 Use the `compute-version` action:
 
 ```yaml
-- uses: codervisor/forge/actions/compute-version@v1
+- uses: ./.github/actions/compute-version
   id: version
   with:
     base-version: '0.2.15'
@@ -213,7 +213,7 @@ Dev versions sort correctly in semver:
 jobs:
   publish:
     steps:
-      - uses: codervisor/forge/actions/compute-version@v1
+      - uses: ./.github/actions/compute-version
         id: version
         with:
           base-version: ${{ steps.pkg.outputs.version }}

@@ -1,6 +1,6 @@
-# Troubleshooting Reference
+# Troubleshooting — Publishing & Versioning
 
-Common failures and fixes for Rust+Node.js hybrid projects.
+Common failures and fixes for the npm publish pipeline and version sync.
 
 ## Publishing Issues
 
@@ -12,10 +12,10 @@ Common failures and fixes for Rust+Node.js hybrid projects.
 1. **Registry propagation delay** — npm takes 10-60s to propagate
    - Wait and retry: `npm view @scope/cli-darwin-arm64@0.2.16`
    - The `wait-propagation` step handles this automatically
-   
+
 2. **Platform package publish failed** — check CI logs for `publish-platform-packages` step
    - Look for: 403 (auth), 409 (version exists), network errors
-   
+
 3. **Version mismatch** — platform and main packages have different versions
    - Run `sync-versions.ts` before publishing
    - Check all package.json files have same version
@@ -65,7 +65,7 @@ pnpm tsx scripts/restore-packages.ts
 **Fixes**:
 1. **postinstall.js didn't run** — npm may skip postinstall in some configs
    - Manual fix: `chmod +x node_modules/@scope/cli-darwin-arm64/my-cli`
-   
+
 2. **postinstall.js missing** — regenerate manifests
    - `pnpm tsx scripts/generate-platform-manifests.ts`
 
@@ -81,7 +81,7 @@ pnpm tsx scripts/restore-packages.ts
    ```bash
    cat node_modules/@scope/cli-darwin-arm64/package.json | jq '{os, cpu}'
    ```
-   
+
 2. **Binary copied to wrong directory** — check `copy-platform-binaries.sh`
 
 3. **Cross-compilation issue** — binary compiled for wrong target
@@ -120,10 +120,7 @@ pnpm tsx scripts/restore-packages.ts
 
 **Manual validation**:
 ```bash
-# Check binary format
 file path/to/binary
-
-# Check first bytes
 xxd -l 4 path/to/binary
 # darwin: cffa edfe or feed facf
 # linux:  7f45 4c46
@@ -139,33 +136,6 @@ xxd -l 4 path/to/binary
 2. **Token scope** — ensure token has `publish` permission
 3. **2FA required** — use automation token (no 2FA prompt)
 4. **Wrong registry** — check `.npmrc` for registry URL
-
-## CI/CD Issues
-
-### Rust Build Fails on macOS ARM
-
-**Fixes**:
-- Use `macos-latest` (supports both x64 and arm64)
-- For cross-compilation: `rustup target add aarch64-apple-darwin`
-
-### pnpm Lockfile Mismatch
-
-**Fixes**:
-- Always use `--frozen-lockfile` in CI
-- Regenerate locally: `pnpm install --no-frozen-lockfile`, commit lockfile
-
-### Cargo Cache Too Large
-
-**Fixes**:
-- Add `shared-key` to Swatinem/rust-cache for cross-job sharing
-- Use `save-if: ${{ github.ref == 'refs/heads/main' }}` to only cache on main
-
-### Artifact Not Found in Downstream Job
-
-**Fixes**:
-- Check `needs:` dependency chain
-- Verify artifact name matches between upload and download
-- Check `pattern` vs `name` in download action
 
 ## Versioning Issues
 
