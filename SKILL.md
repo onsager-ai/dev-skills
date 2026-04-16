@@ -19,6 +19,7 @@ authentication, error formatting, and pass/fail reporting.
 | Pre-deploy check | `sh .claude/skills/railway/scripts/preflight.sh` |
 | Diagnose failure | `sh .claude/skills/railway/scripts/debug.sh [service]` |
 | Verify live deploy | `sh .claude/skills/railway/scripts/smoke.sh [url]` |
+| Full e2e test | `sh .claude/skills/railway/scripts/e2e.sh [url]` |
 | Redeploy | `RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway redeploy --service onsager --yes` |
 | Restart (no rebuild) | `RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway restart --service onsager --yes` |
 
@@ -51,17 +52,31 @@ Default service: `onsager`. Requires `ONSAGER_RAILWAY_TOKEN`.
 
 Post-deploy verification against the live deployment. Runs:
 - API checks via curl: `/api/health`, `/api/auth/me`, `/api/nodes`, `/api/sessions`
-- UI checks via agent-browser (if installed): `/`, `/login`, `/sessions`, `/nodes`, `/settings`
+- UI checks via agent-browser (if installed): `/`, `/sessions`, `/nodes`, `/settings`
 
 Default URL: `https://onsager-production.up.railway.app`. UI checks are
-skipped gracefully if agent-browser is not available.
+skipped gracefully if agent-browser is not available. Auto-detects Linux
+AppArmor sandbox restrictions and sets `--no-sandbox` for Chrome.
+
+### e2e.sh [base_url]
+
+Full browser-based e2e test suite using agent-browser. Tests:
+- All page renders (Dashboard, Nodes, Sessions, Settings)
+- Content assertions (headings, stats, tables, credential options)
+- Interactive flows (New Session modal open/close, form validation)
+- Navigation (click-through all sidebar links)
+- JS console error monitoring
+
+Requires `npx agent-browser`. Auto-detects `--no-sandbox` need on Linux.
 
 ## When to Use Each
 
 - **"check railway" / "is it working"** → `smoke.sh`
 - **"why is deploy failing" / "debug"** → `debug.sh`
+- **"e2e test" / "test the UI" / "full test"** → `e2e.sh`
 - **Before pushing deploy-relevant changes** → `preflight.sh`
 - **After pushing a fix** → `preflight.sh` then wait for build, then `smoke.sh`
+- **After UI changes** → `e2e.sh` (comprehensive browser verification)
 
 ## Project Layout
 

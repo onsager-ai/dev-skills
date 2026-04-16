@@ -74,27 +74,35 @@ else
     fail=$((fail + 1))
 fi
 
-# --- UI Checks (if agent-browser available) ---
-if command -v agent-browser > /dev/null 2>&1; then
+# --- UI Checks (if agent-browser available via npx) ---
+if npx agent-browser --version > /dev/null 2>&1; then
     echo ""
     echo "--- UI Checks (agent-browser) ---"
 
-    pages="/ /login /sessions /nodes /settings"
+    # Auto-detect Linux AppArmor sandbox restriction
+    if [ -z "$AGENT_BROWSER_ARGS" ] && [ "$(uname)" = "Linux" ]; then
+        restrict=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo "0")
+        if [ "$restrict" = "1" ]; then
+            export AGENT_BROWSER_ARGS="--no-sandbox"
+        fi
+    fi
+
+    pages="/ /sessions /nodes /settings"
     for page in $pages; do
         url="$BASE_URL$page"
-        agent-browser open "$url" 2>/dev/null
-        sleep 1
+        npx agent-browser open "$url" 2>/dev/null
+        sleep 2
 
         # Check for JS errors in console
-        console_errors=$(agent-browser console 2>/dev/null | grep -ci 'error' || true)
-        snapshot=$(agent-browser snapshot 2>/dev/null || echo "")
+        console_errors=$(npx agent-browser console 2>/dev/null | grep -ci 'error' || true)
+        snapshot=$(npx agent-browser snapshot 2>/dev/null || echo "")
 
         if [ -n "$snapshot" ] && [ "$console_errors" -lt 3 ]; then
             echo "  PASS  UI renders: $page"
             pass=$((pass + 1))
         else
             echo "  FAIL  UI issue: $page (console errors: $console_errors)"
-            agent-browser screenshot 2>/dev/null || true
+            npx agent-browser screenshot 2>/dev/null || true
             fail=$((fail + 1))
         fi
     done
