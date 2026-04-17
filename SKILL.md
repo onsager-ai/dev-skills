@@ -1,7 +1,7 @@
 ---
 name: railway
 description: Manage, debug, and smoke-test Railway deployments for the Onsager project. Use when asked to "check railway", "debug deployment", "railway logs", "why is deploy failing", "redeploy", "smoke test", "test the deploy", "is railway working", "check service status", "railway variables", "preflight", or any Railway deployment task. Also use proactively after pushing code that changes deploy-relevant files (Dockerfile, entrypoint, migrations, railway.toml).
-allowed-tools: Bash(RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway *), Bash(agent-browser:*), Bash(npx agent-browser:*), Bash(curl *), Bash(sh *), Bash(bash *)
+allowed-tools: Bash(RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway *), Bash(agent-browser:*), Bash(npx agent-browser:*), Bash(curl *), Bash(sh *), Bash(bash *), Bash(just *)
 ---
 
 # Railway
@@ -58,12 +58,16 @@ Default URL: `https://onsager-production.up.railway.app`. UI checks are
 skipped gracefully if agent-browser is not available. Auto-detects Linux
 AppArmor sandbox restrictions and sets `--no-sandbox` for Chrome.
 
+## Just targets
+
 ### just test-e2e-remote [url]
 
-Full product e2e suite against a deployed Onsager instance. Runs the Vitest
-suite in `tests/e2e/product/` (session lifecycle, log streaming, multi-session,
-spine events) with `ONSAGER_URL` pointed at the given URL. Real Claude agent
-sessions — requires valid credentials on the target deployment.
+Full product e2e suite against a deployed Onsager instance. Defined in the
+repo-root `justfile`; delegates to `pnpm --filter onsager-e2e test`. Runs the
+Vitest suite in `tests/e2e/product/` (session lifecycle, log streaming,
+multi-session, spine events) with `ONSAGER_URL` pointed at the given URL.
+Real Claude agent sessions — requires valid credentials on the target
+deployment.
 
 Default URL: `https://onsager-production.up.railway.app`.
 
