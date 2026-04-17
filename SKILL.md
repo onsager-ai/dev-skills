@@ -19,7 +19,7 @@ authentication, error formatting, and pass/fail reporting.
 | Pre-deploy check | `sh .claude/skills/railway/scripts/preflight.sh` |
 | Diagnose failure | `sh .claude/skills/railway/scripts/debug.sh [service]` |
 | Verify live deploy | `sh .claude/skills/railway/scripts/smoke.sh [url]` |
-| Full e2e test | `sh .claude/skills/railway/scripts/e2e.sh [url]` |
+| Full e2e test | `just test-e2e-remote [url]` |
 | Redeploy | `RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway redeploy --service onsager --yes` |
 | Restart (no rebuild) | `RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN" railway restart --service onsager --yes` |
 
@@ -58,25 +58,23 @@ Default URL: `https://onsager-production.up.railway.app`. UI checks are
 skipped gracefully if agent-browser is not available. Auto-detects Linux
 AppArmor sandbox restrictions and sets `--no-sandbox` for Chrome.
 
-### e2e.sh [base_url]
+### just test-e2e-remote [url]
 
-Full browser-based e2e test suite using agent-browser. Tests:
-- All page renders (Dashboard, Nodes, Sessions, Settings)
-- Content assertions (headings, stats, tables, credential options)
-- Interactive flows (New Session modal open/close, form validation)
-- Navigation (click-through all sidebar links)
-- JS console error monitoring
+Full product e2e suite against a deployed Onsager instance. Runs the Vitest
+suite in `tests/e2e/product/` (session lifecycle, log streaming, multi-session,
+spine events) with `ONSAGER_URL` pointed at the given URL. Real Claude agent
+sessions — requires valid credentials on the target deployment.
 
-Requires `npx agent-browser`. Auto-detects `--no-sandbox` need on Linux.
+Default URL: `https://onsager-production.up.railway.app`.
 
 ## When to Use Each
 
 - **"check railway" / "is it working"** → `smoke.sh`
 - **"why is deploy failing" / "debug"** → `debug.sh`
-- **"e2e test" / "test the UI" / "full test"** → `e2e.sh`
+- **"e2e test" / "test the product" / "full test"** → `just test-e2e-remote`
 - **Before pushing deploy-relevant changes** → `preflight.sh`
 - **After pushing a fix** → `preflight.sh` then wait for build, then `smoke.sh`
-- **After UI changes** → `e2e.sh` (comprehensive browser verification)
+- **After changes to session/agent flow** → `just test-e2e-remote`
 
 ## Project Layout
 
