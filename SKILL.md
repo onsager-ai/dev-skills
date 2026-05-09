@@ -29,7 +29,9 @@ authentication, error formatting, and pass/fail reporting.
 
 Run before any deploy or when triaging a build failure. Checks:
 - Lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) tracked in git
-- Dockerfile COPY sources not gitignored
+- Dockerfile COPY sources both exist on disk and are tracked in git
+  (catches the PR #276 → #279 failure mode where a deleted crate left
+  ghost `COPY` references that aborted Docker's image build)
 - Railway vars don't contain `localhost` (dev/prod leak)
 - `DATABASE_URL` references Railway Postgres plugin
 
