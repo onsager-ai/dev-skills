@@ -114,7 +114,7 @@ def validate(ir):
 
 
 def render_dot(ir):
-    lines = ["digraph plan {", "  rankdir=LR;", "  node [shape=box];", ""]
+    lines = ["digraph plan {", "  rankdir=TB;", "  node [shape=box];", ""]
     for n in ir["nodes"]:
         nid = str(n["id"])
         marker = STATUS_MARKER[n.get("status", "open")]
@@ -131,7 +131,7 @@ def render_dot(ir):
 
 
 def render_mermaid(ir):
-    lines = ["graph LR"]
+    lines = ["graph TD"]
     for n in ir["nodes"]:
         nid = str(n["id"])
         status = n.get("status", "open")
