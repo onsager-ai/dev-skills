@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 # Golden tests for plan-dag-render. Exits non-zero on any diff or unexpected
-# exit code. Suitable for CI. Requires `graph-easy` on PATH for boxart/ascii
-# targets (install: cpan -T -i Graph::Easy, or apt install libgraph-easy-perl).
+# exit code. Suitable for CI.
+#
+# Required on PATH:
+#   - `dot`         (graphviz)    — for the `tb` target (default renderer).
+#                                   apt install graphviz, or brew install graphviz.
+#   - `graph-easy`  (Perl module) — for the `boxart` / `ascii` targets.
+#                                   apt install libgraph-easy-perl, or cpan -T -i Graph::Easy.
 
 set -u
 cd "$(dirname "$0")/.."
+
+missing=()
+command -v dot        >/dev/null 2>&1 || missing+=("dot (graphviz)")
+command -v graph-easy >/dev/null 2>&1 || missing+=("graph-easy")
+if [ "${#missing[@]}" -gt 0 ]; then
+    printf 'plan-dag-render.test: missing required tools on PATH:\n' >&2
+    for m in "${missing[@]}"; do printf '  - %s\n' "$m" >&2; done
+    printf 'See script header for install hints.\n' >&2
+    exit 2
+fi
 
 SCRIPT="scripts/plan-dag-render.py"
 FIX="fixtures"
@@ -29,7 +44,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "happy.json"
-for tgt in boxart ascii mermaid; do
+for tgt in tb boxart ascii mermaid; do
     "$SCRIPT" "$FIX/happy.json" --as="$tgt" > "$tmp/happy.$tgt" 2>"$tmp/happy.$tgt.err"
     rc=$?
     if [ "$rc" -ne 0 ]; then
@@ -42,7 +57,7 @@ for tgt in boxart ascii mermaid; do
 done
 
 echo "wide.json"
-for tgt in boxart ascii mermaid; do
+for tgt in tb boxart ascii mermaid; do
     "$SCRIPT" "$FIX/wide.json" --as="$tgt" > "$tmp/wide.$tgt" 2>"$tmp/wide.$tgt.err"
     rc=$?
     if [ "$rc" -ne 0 ]; then
@@ -79,7 +94,7 @@ for token in 'duplicate node id' 'invalid status' 'missing label' \
 done
 
 echo "stdin mode"
-for tgt in boxart ascii mermaid; do
+for tgt in tb boxart ascii mermaid; do
     cat "$FIX/happy.json" | "$SCRIPT" - --as="$tgt" > "$tmp/stdin.$tgt" 2>/dev/null
     rc=$?
     if [ "$rc" -ne 0 ]; then

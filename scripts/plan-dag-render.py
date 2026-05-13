@@ -115,8 +115,8 @@ def validate(ir):
     return errors
 
 
-def render_dot(ir, extra_graph_attrs=()):
-    lines = ["digraph plan {", "  rankdir=TB;"]
+def render_dot(ir, rankdir="TB", extra_graph_attrs=()):
+    lines = ["digraph plan {", f"  rankdir={rankdir};"]
     for attr in extra_graph_attrs:
         lines.append(f"  {attr};")
     lines += ["  node [shape=box];", ""]
@@ -378,7 +378,7 @@ def main():
     elif args.target == "tb":
         print(render_tb_boxart(ir))
     else:
-        sys.stdout.write(render_via_graph_easy(render_dot(ir), args.target))
+        sys.stdout.write(render_via_graph_easy(render_dot(ir, rankdir="LR"), args.target))
 
     cp = ir.get("critical_path")
     if cp and args.target in ("tb", "boxart", "ascii"):
