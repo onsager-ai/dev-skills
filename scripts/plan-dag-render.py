@@ -3,6 +3,8 @@
 
 import argparse
 import json
+import math
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -113,8 +115,11 @@ def validate(ir):
     return errors
 
 
-def render_dot(ir):
-    lines = ["digraph plan {", "  rankdir=TB;", "  node [shape=box];", ""]
+def render_dot(ir, extra_graph_attrs=()):
+    lines = ["digraph plan {", "  rankdir=TB;"]
+    for attr in extra_graph_attrs:
+        lines.append(f"  {attr};")
+    lines += ["  node [shape=box];", ""]
     for n in ir["nodes"]:
         nid = str(n["id"])
         marker = STATUS_MARKER[n.get("status", "open")]
@@ -149,6 +154,184 @@ def render_mermaid(ir):
     return "\n".join(lines)
 
 
+def render_dot_ortho(ir):
+    """Like render_dot but with rectilinear edge routing for grid rendering."""
+    return render_dot(ir, extra_graph_attrs=("splines=ortho",))
+
+
+_TB_XS = 14.0
+_TB_YS = 5.0
+_TB_N, _TB_S, _TB_E, _TB_W = 1, 2, 4, 8
+_TB_GLYPHS = {
+    _TB_N | _TB_S: "│", _TB_E | _TB_W: "─",
+    _TB_N | _TB_E: "└", _TB_N | _TB_W: "┘",
+    _TB_S | _TB_E: "┌", _TB_S | _TB_W: "┐",
+    _TB_N | _TB_S | _TB_E: "├", _TB_N | _TB_S | _TB_W: "┤",
+    _TB_N | _TB_E | _TB_W: "┴", _TB_S | _TB_E | _TB_W: "┬",
+    _TB_N | _TB_S | _TB_E | _TB_W: "┼",
+    _TB_N: "│", _TB_S: "│", _TB_E: "─", _TB_W: "─",
+}
+
+
+def _parse_plain(text):
+    g = {"w": 0.0, "h": 0.0, "nodes": [], "edges": []}
+    for line in text.splitlines():
+        toks = shlex.split(line)
+        if not toks:
+            continue
+        if toks[0] == "graph":
+            g["w"], g["h"] = float(toks[2]), float(toks[3])
+        elif toks[0] == "node":
+            g["nodes"].append({
+                "id": toks[1],
+                "cx": float(toks[2]), "cy": float(toks[3]),
+                "w": float(toks[4]), "h": float(toks[5]),
+                "label": toks[6],
+            })
+        elif toks[0] == "edge":
+            n = int(toks[3])
+            pts = [(float(toks[4 + 2 * i]), float(toks[5 + 2 * i])) for i in range(n)]
+            g["edges"].append({"from": toks[1], "to": toks[2], "pts": pts})
+    return g
+
+
+def _dedupe(seq):
+    out = []
+    for p in seq:
+        if not out or out[-1] != p:
+            out.append(p)
+    return out
+
+
+def render_tb_boxart(ir):
+    """Render the IR as a top-to-bottom box-drawing DAG via real graphviz layout."""
+    dot = render_dot_ortho(ir)
+    try:
+        res = subprocess.run(
+            ["dot", "-Tplain"], input=dot,
+            capture_output=True, text=True, timeout=10,
+        )
+    except FileNotFoundError:
+        sys.exit("`dot` not on PATH. Install graphviz (e.g. apt install graphviz).")
+    except subprocess.TimeoutExpired:
+        sys.exit("`dot -Tplain` timed out after 10s. Try a smaller IR, or --as=mermaid.")
+    if res.returncode != 0:
+        sys.stderr.write(res.stderr)
+        sys.exit(res.returncode)
+    g = _parse_plain(res.stdout)
+
+    Wt = int(math.ceil(g["w"] * _TB_XS)) + 4
+    Ht = int(math.ceil(g["h"] * _TB_YS)) + 2
+
+    def px(x): return int(round(x * _TB_XS)) + 2
+    def py(y): return int(round((g["h"] - y) * _TB_YS)) + 1
+
+    canvas = [[None] * Wt for _ in range(Ht)]
+    edge_dirs = [[0] * Wt for _ in range(Ht)]
+    arrows = {}
+
+    boxes = {}
+    for n in g["nodes"]:
+        cx, cy = px(n["cx"]), py(n["cy"])
+        bw = max(len(n["label"]) + 4, int(round(n["w"] * _TB_XS)))
+        if (bw - len(n["label"])) % 2:
+            bw += 1
+        left = cx - bw // 2
+        right = left + bw - 1
+        top, bot = cy - 1, cy + 1
+        boxes[n["id"]] = (top, left, bot, right)
+        canvas[top][left] = "┌"
+        canvas[top][right] = "┐"
+        canvas[bot][left] = "└"
+        canvas[bot][right] = "┘"
+        for c in range(left + 1, right):
+            canvas[top][c] = "─"
+            canvas[bot][c] = "─"
+        canvas[cy][left] = "│"
+        canvas[cy][right] = "│"
+        label = n["label"]
+        lpad = (bw - 2 - len(label)) // 2
+        for i, ch in enumerate(label):
+            canvas[cy][left + 1 + lpad + i] = ch
+
+    def is_box_cell(r, c):
+        return 0 <= r < Ht and 0 <= c < Wt and canvas[r][c] is not None
+
+    def add(r, c, bit):
+        if 0 <= r < Ht and 0 <= c < Wt and canvas[r][c] is None:
+            edge_dirs[r][c] |= bit
+
+    for e in g["edges"]:
+        pts = _dedupe(e["pts"])
+        if len(pts) < 2:
+            continue
+        grid_pts = _dedupe([(py(y), px(x)) for x, y in pts])
+        if len(grid_pts) < 2:
+            continue
+        for i in range(len(grid_pts) - 1):
+            r1, c1 = grid_pts[i]
+            r2, c2 = grid_pts[i + 1]
+            if r1 == r2:
+                lo, hi = sorted([c1, c2])
+                for c in range(lo, hi + 1):
+                    if c > lo:
+                        add(r1, c, _TB_W)
+                    if c < hi:
+                        add(r1, c, _TB_E)
+            elif c1 == c2:
+                lo, hi = sorted([r1, r2])
+                for r in range(lo, hi + 1):
+                    if r > lo:
+                        add(r, c1, _TB_N)
+                    if r < hi:
+                        add(r, c1, _TB_S)
+
+        head_top, head_left, head_bot, head_right = boxes[e["to"]]
+        last_r, last_c = grid_pts[-1]
+        arrow = arrow_r = arrow_c = mask_bit = None
+        if last_r < head_top:
+            arrow, arrow_r = "▼", head_top - 1
+            arrow_c = max(head_left + 1, min(head_right - 1, last_c))
+            for r in range(last_r, arrow_r):
+                add(r, last_c, _TB_S); add(r + 1, last_c, _TB_N)
+            mask_bit = _TB_S
+        elif last_r > head_bot:
+            arrow, arrow_r = "▲", head_bot + 1
+            arrow_c = max(head_left + 1, min(head_right - 1, last_c))
+            for r in range(arrow_r, last_r):
+                add(r, last_c, _TB_S); add(r + 1, last_c, _TB_N)
+            mask_bit = _TB_N
+        elif last_c < head_left:
+            arrow, arrow_c = "►", head_left - 1
+            arrow_r = max(head_top + 1, min(head_bot - 1, last_r))
+            for c in range(last_c, arrow_c):
+                add(last_r, c, _TB_E); add(last_r, c + 1, _TB_W)
+            mask_bit = _TB_E
+        elif last_c > head_right:
+            arrow, arrow_c = "◄", head_right + 1
+            arrow_r = max(head_top + 1, min(head_bot - 1, last_r))
+            for c in range(arrow_c, last_c):
+                add(last_r, c, _TB_E); add(last_r, c + 1, _TB_W)
+            mask_bit = _TB_W
+        if arrow and 0 <= arrow_r < Ht and 0 <= arrow_c < Wt and not is_box_cell(arrow_r, arrow_c):
+            arrows[(arrow_r, arrow_c)] = arrow
+            edge_dirs[arrow_r][arrow_c] |= mask_bit
+
+    for r in range(Ht):
+        for c in range(Wt):
+            if canvas[r][c] is not None:
+                continue
+            if (r, c) in arrows:
+                canvas[r][c] = arrows[(r, c)]
+            elif edge_dirs[r][c]:
+                canvas[r][c] = _TB_GLYPHS.get(edge_dirs[r][c], "·")
+
+    return "\n".join(
+        "".join(ch if ch is not None else " " for ch in row).rstrip()
+        for row in canvas
+    )
+
+
 def render_via_graph_easy(dot, mode):
     try:
         res = subprocess.run(
@@ -157,6 +340,8 @@ def render_via_graph_easy(dot, mode):
         )
     except FileNotFoundError:
         sys.exit("graph-easy not on PATH. Install: cpan -T -i Graph::Easy")
+    except subprocess.TimeoutExpired:
+        sys.exit("`graph-easy` timed out after 10s. Try a smaller IR.")
     if res.returncode != 0:
         sys.stderr.write(res.stderr)
         sys.exit(res.returncode)
@@ -167,9 +352,9 @@ def main():
     ap = argparse.ArgumentParser(description="Render plan DAG IR.")
     ap.add_argument("ir", help="path to JSON IR, or '-' for stdin")
     ap.add_argument(
-        "--as", dest="target", default="boxart",
-        choices=["boxart", "ascii", "mermaid", "dot"],
-        help="output target (default: boxart)",
+        "--as", dest="target", default="tb",
+        choices=["tb", "boxart", "ascii", "mermaid", "dot"],
+        help="output target (default: tb — top-to-bottom box-drawing via graphviz)",
     )
     args = ap.parse_args()
 
@@ -190,11 +375,13 @@ def main():
         print(render_mermaid(ir))
     elif args.target == "dot":
         print(render_dot(ir))
+    elif args.target == "tb":
+        print(render_tb_boxart(ir))
     else:
         sys.stdout.write(render_via_graph_easy(render_dot(ir), args.target))
 
     cp = ir.get("critical_path")
-    if cp and args.target in ("boxart", "ascii"):
+    if cp and args.target in ("tb", "boxart", "ascii"):
         path = " → ".join("close" if n == "close" else f"#{n}" for n in cp)
         print(f"\nCritical path: {path}")
 

@@ -29,7 +29,7 @@ Skip when:
 |-----------|----------|
 | **Scope** | Inferred — current branch's spec, the umbrella the user named, or the open issues just surveyed. |
 | **Granularity** | Spec-level; drop to sub-issue / PR level for an umbrella that has fanned out. |
-| **Output format** | Monospace text (Unicode box-drawing). Add a mermaid block on top of it only when the user is going to paste the plan elsewhere. |
+| **Output format** | Monospace text (Unicode box-drawing), laid out top-to-bottom via `--as=tb` (default). Add a mermaid block on top of it only when the user is going to paste the plan elsewhere. |
 
 ## Workflow
 
@@ -104,7 +104,11 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 - Every `from` / `to` resolves to a declared node id, or the literal `"close"`.
 - `critical_path` is optional; renderer appends it as a callout under ASCII / box-art targets.
 
-**Invocation** (requires `graph-easy` on PATH for `boxart` / `ascii` targets; install once with `cpan -T -i Graph::Easy`, or `apt install libgraph-easy-perl` on Debian/Ubuntu).
+**Invocation.** Dependencies:
+
+- `--as=tb` (default): requires `dot` (Graphviz). Install: `apt install graphviz`, or `brew install graphviz`.
+- `--as=boxart` / `--as=ascii` (left-to-right via graph-easy): requires `graph-easy`. Install: `apt install libgraph-easy-perl`, or `cpan -T -i Graph::Easy`.
+- `--as=mermaid` / `--as=dot`: no external dependencies.
 
 The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
@@ -117,10 +121,13 @@ Pick whichever exists. If unsure, `test -x .claude/skills/plan-dag/scripts/plan-
 SCRIPT=.claude/skills/plan-dag/scripts/plan-dag-render.py   # project install
 # SCRIPT=~/.claude/skills/plan-dag/scripts/plan-dag-render.py  # global install
 
-# default: box-art for modern terminals (Claude Code, iTerm, WezTerm)
+# default: top-to-bottom box-drawing via real graphviz (Claude Code, iTerm, WezTerm)
 "$SCRIPT" /tmp/plan.json
 
-# pure ASCII for restricted terminals and email
+# legacy: left-to-right box-drawing via graph-easy
+"$SCRIPT" /tmp/plan.json --as=boxart
+
+# pure ASCII (LR) for restricted terminals and email
 "$SCRIPT" /tmp/plan.json --as=ascii
 
 # mermaid for GitHub PR/issue bodies and Notion
@@ -139,7 +146,7 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 - Surface rules:
   - **Claude Code (terminal runtime):** the stdout is already visible in the terminal pane. Do not duplicate it in the reply. Add commentary only — critical path summary, next pickable node, sequencing rationale.
   - **claude.ai web / mobile (no terminal pane):** echo the stdout once, fenced as ` ```text `, then add commentary below.
-- Width handling: if the boxart exceeds ~90 columns (visible by line length in the tool result), prefer `--as=mermaid` for the response and keep `--as=boxart` for local terminal use only. Mermaid wraps gracefully in narrow surfaces; boxart does not.
+- Width handling: if the `tb` output exceeds ~90 columns (visible by line length in the tool result), prefer `--as=mermaid` for the response and keep `--as=tb` for local terminal use only. Mermaid wraps gracefully in narrow surfaces; boxart does not.
 - For very wide graphs (>10 nodes with cross-edges) where even mermaid TD is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3.
 
 ## Conventions
