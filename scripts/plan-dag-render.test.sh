@@ -85,6 +85,24 @@ for token in 'duplicate node id' 'invalid status' 'missing label' \
     fi
 done
 
+echo "cycle.json (must fail validation with a cycle error)"
+"$SCRIPT" "$FIX/cycle.json" > "$tmp/cycle.out" 2>"$tmp/cycle.err"
+rc=$?
+if [ "$rc" -ne 1 ]; then
+    fail=$((fail + 1))
+    printf '  FAIL cycle expected exit 1, got %d\n' "$rc"
+else
+    pass=$((pass + 1))
+    printf '  ok  cycle exit 1\n'
+fi
+if grep -qF 'contains a cycle' "$tmp/cycle.err"; then
+    pass=$((pass + 1))
+    printf '  ok  cycle stderr contains: contains a cycle\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL cycle stderr missing: contains a cycle\n'
+fi
+
 echo "stdin mode"
 for tgt in tb ascii; do
     if [ "$tgt" = "tb" ]; then

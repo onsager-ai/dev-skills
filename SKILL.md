@@ -131,7 +131,7 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 
 **Response handling after running the renderer:**
 
-- Wrap the renderer's stdout in a fenced block tagged ` ```text ` — never `bash` or unlabeled. Syntax highlighting recolors box-drawing characters (`─`, `│`, `┌`, `▶`) and breaks the visual.
+- Wrap the renderer's stdout in a fenced block tagged ` ```text ` — never `bash` or unlabeled. Syntax highlighting recolors box-drawing characters (`─`, `│`, `┌`, `►`) and breaks the visual.
 - Do **not** retype or paraphrase the renderer output. Copy the tool result verbatim. A single shifted character destroys column alignment, and the AI's spatial reasoning is the failure mode the script was introduced to eliminate.
 - Surface rules:
   - **Claude Code (terminal runtime):** the stdout is already visible in the terminal pane. Do not duplicate it in the reply. Add commentary only — critical path summary, next pickable node, sequencing rationale.

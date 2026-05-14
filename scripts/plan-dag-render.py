@@ -115,6 +115,32 @@ def validate(ir):
                     errors.append(
                         f"critical_path[{i}]={node_id!r} not in declared nodes"
                     )
+
+    # Cycle check — only run if edges are structurally sound, so we don't
+    # walk over malformed entries already reported above.
+    if not errors:
+        indeg = {nid: 0 for nid in ids}
+        adj = {nid: [] for nid in ids}
+        for e in edges:
+            u, v = str(e["from"]), str(e["to"])
+            adj[u].append(v)
+            indeg[v] += 1
+        queue = deque(n for n, d in indeg.items() if d == 0)
+        visited = 0
+        while queue:
+            u = queue.popleft()
+            visited += 1
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0:
+                    queue.append(v)
+        if visited < len(ids):
+            cyclic = sorted(n for n, d in indeg.items() if d > 0)
+            errors.append(
+                f"graph contains a cycle; nodes still in-degree>0 after topo sort: "
+                f"{', '.join(cyclic)}"
+            )
+
     return errors
 
 
