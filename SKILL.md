@@ -1,6 +1,6 @@
 ---
 name: plan-dag
-description: Render the current plan as a monospace-safe text dependency DAG (Unicode box-drawing glyphs) — nodes are issues / sub-issues / PRs, edges come from sub-issue links plus dependency-language prose ("Depends on", "Part of", "Blocks", "Closes") and PR / commit cross-references, and every node carries a done / in-progress / open marker so sequencing and critical path are obvious at a glance. Use when asked "plan as dag", "draw a dag", "dag diagram", "show the dependency graph", "what's blocking what", "what's the critical path", "what can be parallelized", "what's left for #N", or right after a `what's next` survey when sequencing the next pick is the actual question. Mermaid is offered as a second view only when the user is going to paste the plan elsewhere — terminals don't render it.
+description: Render the current plan as a monospace-safe text dependency DAG (Unicode box-drawing glyphs) — nodes are issues / sub-issues / PRs, edges come from sub-issue links plus dependency-language prose ("Depends on", "Part of", "Blocks", "Closes") and PR / commit cross-references, and every node carries a done / in-progress / open marker so sequencing and critical path are obvious at a glance. Use when asked "plan as dag", "draw a dag", "dag diagram", "show the dependency graph", "what's blocking what", "what's the critical path", "what can be parallelized", "what's left for #N", or right after a `what's next` survey when sequencing the next pick is the actual question.
 allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git branch:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), mcp__github__issue_read, mcp__github__list_issues, mcp__github__search_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read
 ---
 
@@ -29,7 +29,7 @@ Skip when:
 |-----------|----------|
 | **Scope** | Inferred — current branch's spec, the umbrella the user named, or the open issues just surveyed. |
 | **Granularity** | Spec-level; drop to sub-issue / PR level for an umbrella that has fanned out. |
-| **Output format** | Monospace text (Unicode box-drawing), laid out top-to-bottom via `--as=tb` (default). Add a mermaid block on top of it only when the user is going to paste the plan elsewhere. |
+| **Output format** | Monospace text (Unicode box-drawing) laid out top-to-bottom via graphviz (default). `--as=ascii` for a pure-ASCII tree; `--as=dot` for raw DOT. |
 
 ## Workflow
 
@@ -79,7 +79,7 @@ If a dependency is "obvious to me but uncited", the node label can hint at it; t
 
 ### 4. Render
 
-Emit a JSON IR matching the schema below, then invoke the renderer. **Do not hand-draw ASCII boxes** — `graph-easy` produces deterministically correct layout that the AI's spatial reasoning will not match, especially with cross-edges and fan-out.
+Emit a JSON IR matching the schema below, then invoke the renderer. **Do not hand-draw ASCII boxes** — the renderer produces deterministically correct layout that the AI's spatial reasoning will not match, especially with cross-edges and fan-out.
 
 **Schema:**
 
@@ -99,16 +99,12 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 }
 ```
 
-- `status` ∈ `{done, in_progress, open}`; defaults to `open`. Status markers (`✓`, `…`) are added by the renderer — do not embed them in `label`.
+- `status` ∈ `{done, in_progress, open}`; defaults to `open`. Status markers (`✓`, `…` in box-drawing mode; `[done]` / `[wip]` / `[open]` in ASCII mode) are added by the renderer — do not embed them in `label`.
 - `edges[].source` ∈ `{sub-issue, depends-on, pr-link, closes, part-of}`, required. This is the citation rule from Conventions made enforceable: no edge without a documented source on GitHub.
 - Every `from` / `to` resolves to a declared node id, or the literal `"close"`.
-- `critical_path` is optional; renderer appends it as a callout under ASCII / box-art targets.
+- `critical_path` is optional; renderer appends it as a callout under the box-drawing and ASCII targets.
 
-**Invocation.** Dependencies:
-
-- `--as=tb` (default): requires `dot` (Graphviz). Install: `apt install graphviz`, or `brew install graphviz`.
-- `--as=boxart` / `--as=ascii` (left-to-right via graph-easy): requires `graph-easy`. Install: `apt install libgraph-easy-perl`, or `cpan -T -i Graph::Easy`.
-- `--as=mermaid` / `--as=dot`: no external dependencies.
+**Invocation.** Default emits top-to-bottom box-drawing via graphviz (requires `dot` on PATH — `apt install graphviz`, or `brew install graphviz`) and is the right choice for normal use. `--as=ascii` produces a pure-ASCII indented tree with no external dependency — used explicitly for restricted terminals, and selected automatically (with a stderr note) when `dot` is missing. `--as=dot` emits raw DOT source for piping or debugging.
 
 The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
@@ -121,19 +117,13 @@ Pick whichever exists. If unsure, `test -x .claude/skills/plan-dag/scripts/plan-
 SCRIPT=.claude/skills/plan-dag/scripts/plan-dag-render.py   # project install
 # SCRIPT=~/.claude/skills/plan-dag/scripts/plan-dag-render.py  # global install
 
-# default: top-to-bottom box-drawing via real graphviz (Claude Code, iTerm, WezTerm)
+# default: top-to-bottom box-drawing via graphviz
 "$SCRIPT" /tmp/plan.json
 
-# legacy: left-to-right box-drawing via graph-easy
-"$SCRIPT" /tmp/plan.json --as=boxart
-
-# pure ASCII (LR) for restricted terminals and email
+# pure ASCII tree (no external deps; auto-selected when `dot` is missing)
 "$SCRIPT" /tmp/plan.json --as=ascii
 
-# mermaid for GitHub PR/issue bodies and Notion
-"$SCRIPT" /tmp/plan.json --as=mermaid
-
-# raw DOT for debugging or piping elsewhere
+# raw DOT for piping / debugging
 "$SCRIPT" /tmp/plan.json --as=dot
 ```
 
@@ -141,13 +131,12 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 
 **Response handling after running the renderer:**
 
-- Wrap the renderer's stdout in a fenced block tagged ` ```text ` — never `bash`, `mermaid`, or unlabeled. Syntax highlighting recolors box-drawing characters (`─`, `│`, `┌`, `▶`) and breaks the visual.
+- Wrap the renderer's stdout in a fenced block tagged ` ```text ` — never `bash` or unlabeled. Syntax highlighting recolors box-drawing characters (`─`, `│`, `┌`, `▶`) and breaks the visual.
 - Do **not** retype or paraphrase the renderer output. Copy the tool result verbatim. A single shifted character destroys column alignment, and the AI's spatial reasoning is the failure mode the script was introduced to eliminate.
 - Surface rules:
   - **Claude Code (terminal runtime):** the stdout is already visible in the terminal pane. Do not duplicate it in the reply. Add commentary only — critical path summary, next pickable node, sequencing rationale.
   - **claude.ai web / mobile (no terminal pane):** echo the stdout once, fenced as ` ```text `, then add commentary below.
-- Width handling: if the `tb` output exceeds ~90 columns (visible by line length in the tool result), prefer `--as=mermaid` for the response and keep `--as=tb` for local terminal use only. Mermaid wraps gracefully in narrow surfaces; boxart does not.
-- For very wide graphs (>10 nodes with cross-edges) where even mermaid TD is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3.
+- For very wide graphs (>10 nodes with cross-edges) where the default box-drawing is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3.
 
 ## Conventions
 
@@ -159,7 +148,7 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 
 ## Tests
 
-Golden tests live next to the renderer at `scripts/plan-dag-render.test.sh` and exercise the validator and three render targets against fixtures in `fixtures/`. Run with the same install-aware path the renderer uses:
+Golden tests live next to the renderer at `scripts/plan-dag-render.test.sh` and exercise the validator, both render targets, and the auto-fallback path against fixtures in `fixtures/`. Run with the same install-aware path the renderer uses:
 
 ```bash
 # project-scope install
@@ -171,7 +160,7 @@ Golden tests live next to the renderer at `scripts/plan-dag-render.test.sh` and 
 
 Both forms are in `allowed-tools` so Claude Code doesn't re-prompt for permission. The test script internally `cd`s into the skill root and invokes `scripts/plan-dag-render.py` as a child process — that child invocation runs inside the script's own shell, not through Claude Code's permission engine, so it doesn't need a separate allowlist entry.
 
-Requires `graph-easy` on PATH for the `boxart` / `ascii` targets.
+Requires `dot` (graphviz) on PATH.
 
 ## Related skills
 

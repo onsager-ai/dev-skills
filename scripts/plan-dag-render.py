@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""plan-dag-render — JSON DAG IR → ASCII / box-art / mermaid / DOT."""
+"""plan-dag-render — JSON DAG IR → graphviz box-drawing / raw ASCII tree / DOT."""
 
 import argparse
 import json
 import math
 import shlex
+import shutil
 import subprocess
 import sys
+from collections import deque
 from pathlib import Path
 
 STATUS_MARKER = {"done": " ✓", "in_progress": " …", "open": ""}
+STATUS_WORD = {"done": "done", "in_progress": "wip", "open": "open"}
 VALID_STATUS = set(STATUS_MARKER.keys())
 VALID_SOURCES = {"sub-issue", "depends-on", "pr-link", "closes", "part-of"}
 FORBIDDEN_LABEL_CHARS = ('"', "\\", "[", "]", "\n", "\r")
@@ -57,7 +60,7 @@ def validate(ir):
                 if ch in label:
                     errors.append(
                         f"node #{nid}: label contains forbidden character {ch!r} "
-                        f"(any of {FORBIDDEN_LABEL_CHARS} break mermaid emission)"
+                        f"(any of {FORBIDDEN_LABEL_CHARS} can break output rendering)"
                     )
                     break
     ids.add("close")
@@ -135,25 +138,6 @@ def render_dot(ir, rankdir="TB", extra_graph_attrs=()):
     return "\n".join(lines)
 
 
-def render_mermaid(ir):
-    lines = ["graph TD"]
-    for n in ir["nodes"]:
-        nid = str(n["id"])
-        status = n.get("status", "open")
-        marker = STATUS_MARKER[status]
-        cls = {"done": ":::done", "in_progress": ":::wip", "open": ""}[status]
-        lines.append(f'  N{nid}[#{nid} {n["label"]}{marker}]{cls}')
-    if ir.get("close"):
-        lines.append(f'  CLOSE[close #{ir["close"]}]')
-    for e in ir.get("edges", []):
-        a = "CLOSE" if e["from"] == "close" else f'N{e["from"]}'
-        b = "CLOSE" if e["to"] == "close" else f'N{e["to"]}'
-        lines.append(f"  {a} --> {b}")
-    lines.append("  classDef done fill:#cfc,stroke:#3a3")
-    lines.append("  classDef wip fill:#ffd,stroke:#aa3")
-    return "\n".join(lines)
-
-
 def render_dot_ortho(ir):
     """Like render_dot but with rectilinear edge routing for grid rendering."""
     return render_dot(ir, extra_graph_attrs=("splines=ortho",))
@@ -211,10 +195,8 @@ def render_tb_boxart(ir):
             ["dot", "-Tplain"], input=dot,
             capture_output=True, text=True, timeout=10,
         )
-    except FileNotFoundError:
-        sys.exit("`dot` not on PATH. Install graphviz (e.g. apt install graphviz).")
     except subprocess.TimeoutExpired:
-        sys.exit("`dot -Tplain` timed out after 10s. Try a smaller IR, or --as=mermaid.")
+        sys.exit("`dot -Tplain` timed out after 10s. Try a smaller IR, or --as=ascii.")
     if res.returncode != 0:
         sys.stderr.write(res.stderr)
         sys.exit(res.returncode)
@@ -332,29 +314,132 @@ def render_tb_boxart(ir):
     )
 
 
-def render_via_graph_easy(dot, mode):
-    try:
-        res = subprocess.run(
-            ["graph-easy", "--from=graphviz", f"--as={mode}"],
-            input=dot, capture_output=True, text=True, timeout=10,
+def render_ascii(ir):
+    """Render the IR as a pure-ASCII indented tree plus cross-edges and critical path.
+
+    Tree shape: each non-root node hangs off the predecessor that lies on its longest
+    path. Remaining edges are listed under `Cross-edges:`. Critical path printed last.
+    """
+    nodes_by_id = {str(n["id"]): n for n in ir["nodes"]}
+    node_order = [str(n["id"]) for n in ir["nodes"]]
+    close_id = ir.get("close")
+    has_close = close_id is not None
+
+    all_ids = list(node_order)
+    if has_close:
+        all_ids.append("close")
+    id_pos = {nid: i for i, nid in enumerate(all_ids)}
+
+    raw_edges = [(str(e["from"]), str(e["to"]), e["source"]) for e in ir.get("edges", [])]
+
+    successors = {nid: [] for nid in all_ids}
+    predecessors = {nid: [] for nid in all_ids}
+    for u, v, _ in raw_edges:
+        successors[u].append(v)
+        predecessors[v].append(u)
+
+    indeg = {nid: len(predecessors[nid]) for nid in all_ids}
+    queue = deque(nid for nid in all_ids if indeg[nid] == 0)
+    topo = []
+    seen = set()
+    while queue:
+        u = queue.popleft()
+        if u in seen:
+            continue
+        seen.add(u)
+        topo.append(u)
+        for v in successors[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                queue.append(v)
+    for nid in all_ids:
+        if nid not in seen:
+            topo.append(nid)
+
+    depth = {nid: 0 for nid in all_ids}
+    for u in topo:
+        for v in successors[u]:
+            if depth[u] + 1 > depth[v]:
+                depth[v] = depth[u] + 1
+
+    cp = ir.get("critical_path") or []
+    cp_strs = [str(x) for x in cp]
+    cp_pairs = set(zip(cp_strs[:-1], cp_strs[1:]))
+    cp_nodes = set(cp_strs)
+
+    # Parent selection: max depth wins; tie-break by critical-path membership,
+    # then by declaration order. This keeps the critical chain as the tree spine.
+    parent = {}
+    for nid in all_ids:
+        if not predecessors[nid]:
+            continue
+        parent[nid] = min(
+            predecessors[nid],
+            key=lambda p: (-depth[p], 0 if (p, nid) in cp_pairs else 1, id_pos[p]),
         )
-    except FileNotFoundError:
-        sys.exit("graph-easy not on PATH. Install: cpan -T -i Graph::Easy")
-    except subprocess.TimeoutExpired:
-        sys.exit("`graph-easy` timed out after 10s. Try a smaller IR.")
-    if res.returncode != 0:
-        sys.stderr.write(res.stderr)
-        sys.exit(res.returncode)
-    return res.stdout
+
+    tree_edges = {(par, child) for child, par in parent.items()}
+    cross_edges = [(u, v, src) for u, v, src in raw_edges if (u, v) not in tree_edges]
+
+    tree_children = {nid: [] for nid in all_ids}
+    for par, child in tree_edges:
+        tree_children[par].append(child)
+    for nid in tree_children:
+        tree_children[nid].sort(
+            key=lambda c: (0 if (nid, c) in cp_pairs else 1, -depth[c], id_pos[c]),
+        )
+
+    roots = sorted(
+        (nid for nid in all_ids if not predecessors[nid]),
+        key=lambda r: (0 if r in cp_nodes else 1, id_pos[r]),
+    )
+
+    def fmt(nid):
+        if nid == "close":
+            return f"close #{close_id}"
+        n = nodes_by_id[nid]
+        return f"#{nid} {n['label']} [{STATUS_WORD[n.get('status', 'open')]}]"
+
+    def walk(nid, level, acc):
+        if level == 0:
+            acc.append(fmt(nid))
+        else:
+            acc.append(f"{'     ' * (level - 1)}  +- {fmt(nid)}")
+        for child in tree_children[nid]:
+            walk(child, level + 1, acc)
+
+    chunks = []
+    for root in roots:
+        acc = []
+        walk(root, 0, acc)
+        chunks.append("\n".join(acc))
+    out = "\n\n".join(chunks)
+
+    if cross_edges:
+        ce_lines = ["Cross-edges:"]
+        for u, v, src in cross_edges:
+            ulab = "close" if u == "close" else f"#{u}"
+            vlab = "close" if v == "close" else f"#{v}"
+            ce_lines.append(f"  {ulab} -> {vlab} ({src})")
+        out += "\n\n" + "\n".join(ce_lines)
+
+    if cp_strs:
+        path = " -> ".join("close" if n == "close" else f"#{n}" for n in cp_strs)
+        out += f"\n\nCritical path: {path}"
+
+    return out
 
 
 def main():
     ap = argparse.ArgumentParser(description="Render plan DAG IR.")
     ap.add_argument("ir", help="path to JSON IR, or '-' for stdin")
     ap.add_argument(
-        "--as", dest="target", default="tb",
-        choices=["tb", "boxart", "ascii", "mermaid", "dot"],
-        help="output target (default: tb — top-to-bottom box-drawing via graphviz)",
+        "--as", dest="target", default=None,
+        choices=["ascii", "dot"],
+        help="output target. Default: top-to-bottom box-drawing via graphviz "
+             "(requires `dot`; auto-falls back to --as=ascii when missing). "
+             "--as=ascii: pure-ASCII tree, no external deps. "
+             "--as=dot: raw DOT source.",
     )
     args = ap.parse_args()
 
@@ -371,19 +456,25 @@ def main():
             sys.stderr.write(f"  - {err}\n")
         sys.exit(1)
 
-    if args.target == "mermaid":
-        print(render_mermaid(ir))
-    elif args.target == "dot":
-        print(render_dot(ir))
-    elif args.target == "tb":
-        print(render_tb_boxart(ir))
-    else:
-        sys.stdout.write(render_via_graph_easy(render_dot(ir, rankdir="LR"), args.target))
+    target = args.target
+    if target is None:
+        if shutil.which("dot") is None:
+            sys.stderr.write(
+                "plan-dag-render: `dot` not on PATH; falling back to --as=ascii. "
+                "Install graphviz for the default box-drawing renderer.\n"
+            )
+            target = "ascii"
 
-    cp = ir.get("critical_path")
-    if cp and args.target in ("tb", "boxart", "ascii"):
-        path = " → ".join("close" if n == "close" else f"#{n}" for n in cp)
-        print(f"\nCritical path: {path}")
+    if target == "dot":
+        print(render_dot(ir))
+    elif target == "ascii":
+        print(render_ascii(ir))
+    else:
+        print(render_tb_boxart(ir))
+        cp = ir.get("critical_path")
+        if cp:
+            path = " → ".join("close" if str(n) == "close" else f"#{n}" for n in cp)
+            print(f"\nCritical path: {path}")
 
 
 if __name__ == "__main__":
