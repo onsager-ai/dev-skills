@@ -56,10 +56,78 @@ trap 'rm -rf "$tmp"' EXIT
 echo "happy.json"
 run_and_compare "happy default (tb)"  "$FIX/happy.json" tb
 run_and_compare "happy --as=ascii"    "$FIX/happy.json" ascii --as=ascii
+run_and_compare "happy --as=dot (emoji on by default)" \
+                                       "$FIX/happy.json" dot --as=dot
+run_and_compare "happy --as=dot --emoji=off" \
+                                       "$FIX/happy.json" dot.noemoji \
+                                       --as=dot --emoji=off
 
 echo "wide.json"
 run_and_compare "wide default (tb)"   "$FIX/wide.json"  tb
 run_and_compare "wide --as=ascii"     "$FIX/wide.json"  ascii --as=ascii
+
+echo "styled DOT structural checks"
+# Available-next: #304 is open, only pred (#288) is done → highlighted in blue.
+"$SCRIPT" "$FIX/happy.json" --as=dot > "$tmp/happy.dot" 2>/dev/null
+if grep -q '"304"\s*\[.*fillcolor="#cfe2ff"' "$tmp/happy.dot"; then
+    pass=$((pass + 1))
+    printf '  ok  available-next (#304) gets blue highlight\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL #304 missing available-next highlight\n'
+fi
+# #306 is open but blocked (preds #304/#305 not done) → dashed muted style.
+if grep -q '"306"\s*\[.*style="filled,rounded,dashed"' "$tmp/happy.dot"; then
+    pass=$((pass + 1))
+    printf '  ok  blocked-open (#306) gets dashed style\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL #306 missing dashed blocked-open style\n'
+fi
+# Close sentinel gets a double border.
+if grep -q '"close"\s*\[.*peripheries="2"' "$tmp/happy.dot"; then
+    pass=$((pass + 1))
+    printf '  ok  close sentinel gets double border\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL close sentinel missing peripheries="2"\n'
+fi
+# Edges stay uniform — no penwidth bolding on the declared critical_path.
+# (We test by counting how many edge lines carry an explicit penwidth.)
+crit_edges=$(grep -E '"[^"]+"\s*->\s*"[^"]+"\s*\[' "$tmp/happy.dot" | grep -c 'penwidth' || true)
+if [ "$crit_edges" -eq 0 ]; then
+    pass=$((pass + 1))
+    printf '  ok  no critical-path edge bolding (subjective; footer-only)\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL %d edges carry explicit penwidth (expected 0)\n' "$crit_edges"
+fi
+# --emoji=off strips emoji from labels but keeps the ✓/… markers.
+"$SCRIPT" "$FIX/happy.json" --as=dot --emoji=off > "$tmp/happy.dot.off" 2>/dev/null
+if grep -q '✅\|🟡\|⬜\|🎯\|🏁' "$tmp/happy.dot.off"; then
+    fail=$((fail + 1))
+    printf '  FAIL --emoji=off leaked emoji into output\n'
+else
+    pass=$((pass + 1))
+    printf '  ok  --emoji=off strips emoji\n'
+fi
+if grep -q '#288 MCP ✓' "$tmp/happy.dot.off"; then
+    pass=$((pass + 1))
+    printf '  ok  --emoji=off retains text markers\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL --emoji=off missing text marker\n'
+fi
+# --emoji=on with default (tb) target must NOT affect tb output — the layout
+# math assumes single-width chars. The flag is silently inert for tb/ascii.
+"$SCRIPT" "$FIX/happy.json" --emoji=on > "$tmp/happy.tb.emoji-on" 2>/dev/null
+if diff -u "$EXP/happy.tb" "$tmp/happy.tb.emoji-on" >/dev/null; then
+    pass=$((pass + 1))
+    printf '  ok  --emoji=on does not affect default (tb) output\n'
+else
+    fail=$((fail + 1))
+    printf '  FAIL --emoji=on altered tb output\n'
+fi
 
 echo "bad.json (must fail validation)"
 "$SCRIPT" "$FIX/bad.json" > "$tmp/bad.out" 2>"$tmp/bad.err"

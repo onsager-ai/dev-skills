@@ -106,6 +106,20 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 
 **Invocation.** Default emits top-to-bottom box-drawing via graphviz (requires `dot` on PATH — `apt install graphviz`, or `brew install graphviz`) and is the right choice for terminal-only surfaces. `--as=png --out <path>` rasterises the same DOT through `dot -Tsvg` and a headless Chromium screenshot at deviceScaleFactor=2 — sharper than `dot -Tpng` and the preferred output when the chat surface can show inline images (see Response handling below). Needs `dot`, `node`, and Playwright Chromium on PATH. `--as=ascii` produces a pure-ASCII indented tree with no external dependency — used explicitly for restricted terminals, and selected automatically (with a stderr note) when `dot` is missing. `--as=dot` emits raw DOT source for piping or debugging.
 
+**Visual encoding (PNG / DOT targets only).** Status is dual-encoded by fill and a leading emoji so the eye picks up state before reading the label:
+
+| State | Fill | Border | Emoji |
+|-------|------|--------|-------|
+| Done | muted green | green | ✅ |
+| In-progress | amber | thicker amber | 🟡 |
+| Open + all preds done ("available next") | cool blue | thick blue | 🎯 |
+| Open + blocked | near-white | grey, dashed | ⬜ |
+| Close sentinel | white | double | 🏁 |
+
+The "available next" highlight is computed from the graph (open + every predecessor is `done`) — no IR field for it. Critical-path edges are *not* bolded: which path is "the" critical path is a caller judgement, and elevating it visually would conflate the recommendation with the graph's topology. Keep the critical path in `ir.critical_path` and let the renderer print it as a footer / let prose carry the next-pick recommendation.
+
+The text box-drawing and ASCII targets stay glyph-only (`✓` / `…` markers) because their layout math counts characters, not visual columns, and emoji are East Asian Wide. The `--emoji` flag controls whether emoji are emitted in DOT/PNG labels: `auto` (default) is on for image targets, off for text targets; `on` / `off` force it. Turn `off` if a target system lacks a color emoji font and you see tofu boxes in the PNG.
+
 The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
 - **Project-scope install** (default for `npx skills add onsager-ai/onsager-skills` from a repo root): `.claude/skills/plan-dag/scripts/plan-dag-render.py`
@@ -126,8 +140,9 @@ SCRIPT=.claude/skills/plan-dag/scripts/plan-dag-render.py   # project install
 # pure ASCII tree (no external deps; auto-selected when `dot` is missing)
 "$SCRIPT" /tmp/plan.json --as=ascii
 
-# raw DOT for piping / debugging
+# raw DOT for piping / debugging (styled by default; --emoji=off for portability)
 "$SCRIPT" /tmp/plan.json --as=dot
+"$SCRIPT" /tmp/plan.json --as=dot --emoji=off
 ```
 
 If the renderer aborts with `IR validation failed`, fix the IR — do not work around it by hand-drawing. The validation surface is the citation rule (`Conventions › No invented edges`) made executable.

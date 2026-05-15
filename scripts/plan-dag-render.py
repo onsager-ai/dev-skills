@@ -17,6 +17,29 @@ VALID_STATUS = set(STATUS_MARKER.keys())
 VALID_SOURCES = {"sub-issue", "depends-on", "pr-link", "closes", "part-of"}
 FORBIDDEN_LABEL_CHARS = ('"', "\\", "[", "]", "\n", "\r")
 
+# Styled-DOT visual vocabulary. Fills encode status; an additional "available
+# next" highlight is computed from the graph (open + all preds done). Used by
+# --as=dot and --as=png only — text/ascii paths stay glyph-only because the
+# layout math counts characters, not visual columns.
+_STYLE_DONE = {"fillcolor": "#d4edda", "color": "#52a566"}
+_STYLE_IN_PROGRESS = {"fillcolor": "#fff3cd", "color": "#d39e00", "penwidth": "2.0"}
+_STYLE_OPEN_BLOCKED = {
+    "fillcolor": "#f8f9fa", "color": "#adb5bd",
+    "style": "filled,rounded,dashed",
+}
+_STYLE_OPEN_AVAILABLE = {
+    "fillcolor": "#cfe2ff", "color": "#0d6efd", "penwidth": "2.5",
+}
+_STYLE_CLOSE = {"peripheries": "2", "fillcolor": "#ffffff", "color": "#495057"}
+
+_EMOJI = {
+    "done": "✅",
+    "in_progress": "🟡",
+    "open_blocked": "⬜",
+    "open_available": "🎯",
+    "close": "🏁",
+}
+
 
 def _dot_escape(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
@@ -144,19 +167,93 @@ def validate(ir):
     return errors
 
 
-def render_dot(ir, rankdir="TB", extra_graph_attrs=()):
+def _available_next(ir):
+    """Open nodes whose predecessors are all `done` — i.e. unblocked picks.
+
+    Used by the styled DOT path to highlight the next pickable node(s).
+    The close sentinel is excluded; it isn't a pickable task.
+    """
+    status_by_id = {str(n["id"]): n.get("status", "open") for n in ir["nodes"]}
+    preds = {nid: [] for nid in status_by_id}
+    for e in ir.get("edges", []):
+        v = str(e["to"])
+        if v in preds:
+            preds[v].append(str(e["from"]))
+    return {
+        nid for nid, st in status_by_id.items()
+        if st == "open" and all(status_by_id.get(p) == "done" for p in preds[nid])
+    }
+
+
+def _attrs_str(attrs):
+    return ", ".join(f'{k}="{v}"' for k, v in attrs.items())
+
+
+def render_dot(ir, rankdir="TB", extra_graph_attrs=(), styled=False, emoji=False):
+    """Emit DOT source.
+
+    styled=False: plain boxes with `✓`/`…` status markers — keeps the
+        `dot -Tplain` geometry that render_tb_boxart parses, and matches
+        the existing tb/ascii golden output.
+    styled=True: status fills, available-next highlight, double-bordered
+        close sentinel. Used by --as=dot and --as=png.
+    emoji=True (only meaningful with styled=True): prepend a status emoji
+        to each label and drop the `✓`/`…` marker. Requires a color emoji
+        font on the rendering system.
+    """
     lines = ["digraph plan {", f"  rankdir={rankdir};"]
     for attr in extra_graph_attrs:
         lines.append(f"  {attr};")
-    lines += ["  node [shape=box];", ""]
+    if styled:
+        lines += [
+            '  bgcolor="white";',
+            '  node [shape=box, style="filled,rounded", fontname="Helvetica", '
+            'fontsize=12, penwidth=1.2, color="#495057", fillcolor="#ffffff"];',
+            '  edge [color="#6c757d", penwidth=1.0, arrowsize=0.8];',
+            "",
+        ]
+    else:
+        lines += ["  node [shape=box];", ""]
+
+    available = _available_next(ir) if styled else set()
+
     for n in ir["nodes"]:
         nid = str(n["id"])
-        marker = STATUS_MARKER[n.get("status", "open")]
-        label = _dot_escape(f'#{nid} {n["label"]}{marker}')
-        lines.append(f'  "{_dot_escape(nid)}" [label="{label}"];')
+        status = n.get("status", "open")
+        if styled:
+            if status == "done":
+                attrs, em_key = _STYLE_DONE, "done"
+            elif status == "in_progress":
+                attrs, em_key = _STYLE_IN_PROGRESS, "in_progress"
+            elif nid in available:
+                attrs, em_key = _STYLE_OPEN_AVAILABLE, "open_available"
+            else:
+                attrs, em_key = _STYLE_OPEN_BLOCKED, "open_blocked"
+            if emoji:
+                label_text = f'{_EMOJI[em_key]}  #{nid} {n["label"]}'
+            else:
+                label_text = f'#{nid} {n["label"]}{STATUS_MARKER[status]}'
+            label = _dot_escape(label_text)
+            lines.append(
+                f'  "{_dot_escape(nid)}" [label="{label}", {_attrs_str(attrs)}];'
+            )
+        else:
+            label = _dot_escape(f'#{nid} {n["label"]}{STATUS_MARKER[status]}')
+            lines.append(f'  "{_dot_escape(nid)}" [label="{label}"];')
+
     if ir.get("close"):
-        close_label = _dot_escape(f'close #{ir["close"]}')
-        lines.append(f'  "close" [label="{close_label}"];')
+        if styled:
+            close_text = (
+                f'{_EMOJI["close"]}  close #{ir["close"]}'
+                if emoji else f'close #{ir["close"]}'
+            )
+            close_label = _dot_escape(close_text)
+            lines.append(
+                f'  "close" [label="{close_label}", {_attrs_str(_STYLE_CLOSE)}];'
+            )
+        else:
+            close_label = _dot_escape(f'close #{ir["close"]}')
+            lines.append(f'  "close" [label="{close_label}"];')
     lines.append("")
     for e in ir.get("edges", []):
         lines.append(f'  "{_dot_escape(str(e["from"]))}" -> "{_dot_escape(str(e["to"]))}";')
@@ -456,7 +553,7 @@ def render_ascii(ir):
     return out
 
 
-def render_png(ir, out_path):
+def render_png(ir, out_path, emoji=True):
     """Render the IR as a high-quality PNG.
 
     Pipeline: dot -Tsvg → headless Chromium (via Playwright) → PNG. Going
@@ -478,7 +575,7 @@ def render_png(ir, out_path):
     if not svg_to_png.exists():
         sys.exit(f"--as=png: missing helper {svg_to_png}")
 
-    dot_src = render_dot(ir)
+    dot_src = render_dot(ir, styled=True, emoji=emoji)
     try:
         svg_res = subprocess.run(
             ["dot", "-Tsvg"], input=dot_src,
@@ -521,6 +618,14 @@ def main():
         "--out", default=None,
         help="output file path. Required for --as=png; ignored otherwise.",
     )
+    ap.add_argument(
+        "--emoji", default="auto", choices=["auto", "on", "off"],
+        help="emoji status indicators in node labels. auto (default): on for "
+             "--as=dot and --as=png, off for text/ascii (whose layout math "
+             "assumes single-width characters). on/off forces it. Emoji "
+             "requires a color emoji font on the rendering system; turn off "
+             "if you see tofu boxes in the PNG.",
+    )
     args = ap.parse_args()
 
     text = sys.stdin.read() if args.ir == "-" else Path(args.ir).read_text()
@@ -545,14 +650,24 @@ def main():
             )
             target = "ascii"
 
+    # Emoji policy: on for image-producing targets (dot/png), off for
+    # text-producing targets (tb/ascii) whose layout math assumes
+    # single-width characters. `on` / `off` forces it either way.
+    if args.emoji == "on":
+        emoji_on = True
+    elif args.emoji == "off":
+        emoji_on = False
+    else:
+        emoji_on = target in ("dot", "png")
+
     if target == "dot":
-        print(render_dot(ir))
+        print(render_dot(ir, styled=True, emoji=emoji_on))
     elif target == "ascii":
         print(render_ascii(ir))
     elif target == "png":
         if not args.out:
             sys.exit("--as=png requires --out <path>")
-        render_png(ir, args.out)
+        render_png(ir, args.out, emoji=emoji_on)
     else:
         print(render_tb_boxart(ir))
         cp = ir.get("critical_path")
