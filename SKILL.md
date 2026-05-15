@@ -29,7 +29,7 @@ Skip when:
 |-----------|----------|
 | **Scope** | Inferred — current branch's spec, the umbrella the user named, or the open issues just surveyed. |
 | **Granularity** | Spec-level; drop to sub-issue / PR level for an umbrella that has fanned out. |
-| **Output format** | Monospace text (Unicode box-drawing) laid out top-to-bottom via graphviz (default). `--as=ascii` for a pure-ASCII tree; `--as=dot` for raw DOT. |
+| **Output format** | Monospace text (Unicode box-drawing) laid out top-to-bottom via graphviz (default). `--as=png --out <path>` for a high-DPI image (preferred on image-capable chat surfaces — see below); `--as=ascii` for a pure-ASCII tree; `--as=dot` for raw DOT. |
 
 ## Workflow
 
@@ -104,7 +104,7 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 - Every `from` / `to` resolves to a declared node id, or the literal `"close"`.
 - `critical_path` is optional; renderer appends it as a callout under the box-drawing and ASCII targets.
 
-**Invocation.** Default emits top-to-bottom box-drawing via graphviz (requires `dot` on PATH — `apt install graphviz`, or `brew install graphviz`) and is the right choice for normal use. `--as=ascii` produces a pure-ASCII indented tree with no external dependency — used explicitly for restricted terminals, and selected automatically (with a stderr note) when `dot` is missing. `--as=dot` emits raw DOT source for piping or debugging.
+**Invocation.** Default emits top-to-bottom box-drawing via graphviz (requires `dot` on PATH — `apt install graphviz`, or `brew install graphviz`) and is the right choice for terminal-only surfaces. `--as=png --out <path>` rasterises the same DOT through `dot -Tsvg` and a headless Chromium screenshot at deviceScaleFactor=2 — sharper than `dot -Tpng` and the preferred output when the chat surface can show inline images (see Response handling below). Needs `dot`, `node`, and Playwright Chromium on PATH. `--as=ascii` produces a pure-ASCII indented tree with no external dependency — used explicitly for restricted terminals, and selected automatically (with a stderr note) when `dot` is missing. `--as=dot` emits raw DOT source for piping or debugging.
 
 The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
@@ -119,6 +119,9 @@ SCRIPT=.claude/skills/plan-dag/scripts/plan-dag-render.py   # project install
 
 # default: top-to-bottom box-drawing via graphviz
 "$SCRIPT" /tmp/plan.json
+
+# high-DPI PNG (preferred on image-capable surfaces; then SendUserFile)
+"$SCRIPT" /tmp/plan.json --as=png --out /tmp/plan-dag.png
 
 # pure ASCII tree (no external deps; auto-selected when `dot` is missing)
 "$SCRIPT" /tmp/plan.json --as=ascii
@@ -135,8 +138,9 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 - Do **not** retype or paraphrase the renderer output. Copy the tool result verbatim. A single shifted character destroys column alignment, and the AI's spatial reasoning is the failure mode the script was introduced to eliminate.
 - Surface rules:
   - **Claude Code (terminal runtime):** the stdout is already visible in the terminal pane. Do not duplicate it in the reply. Add commentary only — critical path summary, next pickable node, sequencing rationale.
-  - **claude.ai web / mobile (no terminal pane):** echo the stdout once, fenced as ` ```text `, then add commentary below.
-- For very wide graphs (>10 nodes with cross-edges) where the default box-drawing is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3.
+  - **claude.ai web / mobile, Claude Code on the web (image-capable, no real terminal pane):** prefer the PNG path. Render with `--as=png --out /tmp/plan-dag.png` and send the file via `SendUserFile` so the user sees a rasterised image instead of a wall of glyphs that may reflow under proportional fonts. Add prose commentary below the file — critical path, next pickable node — but don't echo the text-art version too.
+  - **No image surface available (raw terminals, restricted runtimes):** the default stdout box-drawing remains the right output. PR descriptions also prefer the text version since GitHub renders ` ```text ` blocks faithfully.
+- For very wide graphs (>10 nodes with cross-edges) where the default box-drawing is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3. The PNG target scales further before it becomes unwieldy than the text target does.
 
 ## Conventions
 

@@ -456,16 +456,70 @@ def render_ascii(ir):
     return out
 
 
+def render_png(ir, out_path):
+    """Render the IR as a high-quality PNG.
+
+    Pipeline: dot -Tsvg → headless Chromium (via Playwright) → PNG. Going
+    through the browser instead of `dot -Tpng` gives sharper text and
+    correct anti-aliasing at high DPI, which matters when the PNG is
+    surfaced to the user as an inline chat image.
+    """
+    if shutil.which("dot") is None:
+        sys.exit(
+            "--as=png requires `dot` (graphviz) on PATH. "
+            "Install: apt install graphviz, or brew install graphviz."
+        )
+    if shutil.which("node") is None:
+        sys.exit(
+            "--as=png requires Node (node ≥18) on PATH for Playwright."
+        )
+    script_dir = Path(__file__).resolve().parent
+    svg_to_png = script_dir / "svg-to-png.mjs"
+    if not svg_to_png.exists():
+        sys.exit(f"--as=png: missing helper {svg_to_png}")
+
+    dot_src = render_dot(ir)
+    try:
+        svg_res = subprocess.run(
+            ["dot", "-Tsvg"], input=dot_src,
+            capture_output=True, text=True, timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        sys.exit("`dot -Tsvg` timed out after 10s.")
+    if svg_res.returncode != 0:
+        sys.stderr.write(svg_res.stderr)
+        sys.exit(svg_res.returncode or 1)
+
+    try:
+        png_res = subprocess.run(
+            ["node", str(svg_to_png), out_path],
+            input=svg_res.stdout, capture_output=True, text=True, timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        sys.exit("svg-to-png.mjs timed out after 30s.")
+    if png_res.returncode != 0:
+        sys.stderr.write(png_res.stderr)
+        sys.exit(png_res.returncode or 1)
+    sys.stderr.write(png_res.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Render plan DAG IR.")
     ap.add_argument("ir", help="path to JSON IR, or '-' for stdin")
     ap.add_argument(
         "--as", dest="target", default=None,
-        choices=["ascii", "dot"],
+        choices=["ascii", "dot", "png"],
         help="output target. Default: top-to-bottom box-drawing via graphviz "
              "(requires `dot`; auto-falls back to --as=ascii when missing). "
+             "--as=png: high-quality PNG via graphviz SVG + headless "
+             "Chromium (requires `dot`, `node`, and Playwright Chromium; "
+             "use --out to set the path). "
              "--as=ascii: pure-ASCII tree, no external deps. "
              "--as=dot: raw DOT source.",
+    )
+    ap.add_argument(
+        "--out", default=None,
+        help="output file path. Required for --as=png; ignored otherwise.",
     )
     args = ap.parse_args()
 
@@ -495,6 +549,10 @@ def main():
         print(render_dot(ir))
     elif target == "ascii":
         print(render_ascii(ir))
+    elif target == "png":
+        if not args.out:
+            sys.exit("--as=png requires --out <path>")
+        render_png(ir, args.out)
     else:
         print(render_tb_boxart(ir))
         cp = ir.get("critical_path")
