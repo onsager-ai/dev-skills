@@ -143,7 +143,7 @@ for token in 'duplicate node id' 'invalid status' 'missing label' \
              'not in declared nodes' 'missing source' 'not in [' \
              'must be an object' 'forbidden character' \
              'reserved for the synthetic CLOSE' 'ir.close is missing' \
-             'critical_path[1]'; do
+             'critical_path[1]' 'starts with own id'; do
     if grep -qF "$token" "$tmp/bad.err"; then
         pass=$((pass + 1))
         printf '  ok  bad stderr contains: %s\n' "$token"
@@ -152,6 +152,42 @@ for token in 'duplicate node id' 'invalid status' 'missing label' \
         printf '  FAIL bad stderr missing: %s\n' "$token"
     fi
 done
+
+echo "own-id-prefix boundary cases (must pass validation)"
+# Labels that mention a *different* issue number must not be rejected, and the
+# rendered output should keep the in-label reference intact.
+ref_ir='{"nodes":[{"id":"288","label":"MCP (see #500)","status":"done"}],"edges":[]}'
+echo "$ref_ir" | "$SCRIPT" - --as=ascii > "$tmp/ref.out" 2>"$tmp/ref.err"
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail=$((fail + 1))
+    printf '  FAIL label referencing another issue rejected (rc=%d)\n' "$rc"
+    sed 's/^/    /' < "$tmp/ref.err"
+elif ! grep -qF '#288 MCP (see #500) [done]' "$tmp/ref.out"; then
+    fail=$((fail + 1))
+    printf '  FAIL expected "#288 MCP (see #500) [done]" in output, got:\n'
+    sed 's/^/    /' < "$tmp/ref.out"
+else
+    pass=$((pass + 1))
+    printf '  ok  label mentioning a different issue passes (no false positive)\n'
+fi
+# Own id as a *prefix* of a longer id in the label must also pass: own id 28,
+# label "#288 different" — "#288" is not the own id.
+pref_ir='{"nodes":[{"id":"28","label":"#288 different","status":"open"}],"edges":[]}'
+echo "$pref_ir" | "$SCRIPT" - --as=ascii > "$tmp/pref.out" 2>"$tmp/pref.err"
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail=$((fail + 1))
+    printf '  FAIL own-id-as-prefix-of-longer-id rejected (rc=%d)\n' "$rc"
+    sed 's/^/    /' < "$tmp/pref.err"
+elif ! grep -qF '#28 #288 different [open]' "$tmp/pref.out"; then
+    fail=$((fail + 1))
+    printf '  FAIL expected "#28 #288 different [open]" in output, got:\n'
+    sed 's/^/    /' < "$tmp/pref.out"
+else
+    pass=$((pass + 1))
+    printf '  ok  own id as prefix of a longer id in label passes\n'
+fi
 
 echo "cycle.json (must fail validation with a cycle error)"
 "$SCRIPT" "$FIX/cycle.json" > "$tmp/cycle.out" 2>"$tmp/cycle.err"

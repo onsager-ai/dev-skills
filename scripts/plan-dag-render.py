@@ -87,6 +87,22 @@ def validate(ir):
                         f"(any of {FORBIDDEN_LABEL_CHARS} can break output rendering)"
                     )
                     break
+            # The renderer always prepends "#<id> " to the label. A label that
+            # already starts with "#<own-id>" (followed by non-digit or end of
+            # string) renders as "#288 #288 MCP" — a common mistake when
+            # pasting GitHub titles verbatim. References to *other* issue
+            # numbers in the label are fine.
+            nid_prefix = f"#{nid}"
+            if label.startswith(nid_prefix) and (
+                len(label) == len(nid_prefix)
+                or not label[len(nid_prefix)].isdigit()
+            ):
+                stripped = label[len(nid_prefix):].lstrip(" :-\t") or "<title>"
+                errors.append(
+                    f"node #{nid}: label {label!r} starts with own id; "
+                    f"the renderer prepends '#{nid} ' automatically — "
+                    f"use just the bare title (e.g. {stripped!r})"
+                )
     ids.add("close")
     edges = ir.get("edges", [])
     if not isinstance(edges, list):
