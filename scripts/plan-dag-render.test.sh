@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Golden tests for plan-dag-render. Exits non-zero on any diff or unexpected
+# Tests for plan-dag-render. Exits non-zero on any failure or unexpected
 # exit code. Suitable for CI.
 #
 # Required on PATH:
-#   - `dot` (graphviz) — for the default (top-to-bottom box-drawing) renderer.
+#   - `dot` (graphviz) — for the SVG pipeline that feeds the PNG rasteriser.
 #                        apt install graphviz, or brew install graphviz.
+#   - `node` (≥18) + Playwright Chromium — for the PNG rasteriser itself.
+#                        npm i -g playwright && npx playwright install chromium.
+#
+# If `node` / Playwright are missing, the PNG smoke test is skipped (not
+# failed) so the validator tests still run in restricted CI environments.
 
 set -u
 cd "$(dirname "$0")/.."
@@ -17,120 +22,179 @@ fi
 
 SCRIPT="scripts/plan-dag-render.py"
 FIX="fixtures"
-EXP="$FIX/expected"
 
 fail=0
 pass=0
 
-assert_eq () {
-    local label="$1" got_file="$2" exp_file="$3"
-    if diff -u "$exp_file" "$got_file" >/dev/null; then
-        pass=$((pass + 1))
-        printf '  ok  %s\n' "$label"
-    else
-        fail=$((fail + 1))
-        printf '  FAIL %s\n' "$label"
-        diff -u "$exp_file" "$got_file" | sed 's/^/    /'
-    fi
-}
-
-run_and_compare () {
-    # $1 label, $2 fixture, $3 expected suffix (tb|ascii), $4... extra args
-    local label="$1" fix="$2" suf="$3"; shift 3
-    local base; base="$(basename "$fix" .json)"
-    local out="$tmp/$base.$suf"
-    "$SCRIPT" "$fix" "$@" > "$out" 2>"$out.err"
-    local rc=$?
-    if [ "$rc" -ne 0 ]; then
-        fail=$((fail + 1))
-        printf '  FAIL %s exited %d\n' "$label" "$rc"
-        sed 's/^/    /' < "$out.err"
-        return
-    fi
-    assert_eq "$label" "$out" "$EXP/$base.$suf"
-}
-
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-echo "happy.json"
-run_and_compare "happy default (tb)"  "$FIX/happy.json" tb
-run_and_compare "happy --as=ascii"    "$FIX/happy.json" ascii --as=ascii
-run_and_compare "happy --as=dot (emoji on by default)" \
-                                       "$FIX/happy.json" dot --as=dot
-run_and_compare "happy --as=dot --emoji=off" \
-                                       "$FIX/happy.json" dot.noemoji \
-                                       --as=dot --emoji=off
+echo "happy.json — PNG smoke"
+# Skip markers — any of these in the helper's stderr means the local env is
+# missing a Playwright/Chromium piece and the test should be skipped rather
+# than fail loudly.
+png_skip_re='cannot load Playwright|Executable doesn.t exist|browserType\.launch|playwright install'
+if command -v node >/dev/null 2>&1; then
+    png_out="$tmp/happy.png"
+    "$SCRIPT" "$FIX/happy.json" --out "$png_out" >"$tmp/png.out" 2>"$tmp/png.err"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        if grep -qE "$png_skip_re" "$tmp/png.err"; then
+            printf '  skip PNG render (Playwright/Chromium not available)\n'
+        else
+            fail=$((fail + 1))
+            printf '  FAIL PNG render exited %d\n' "$rc"
+            sed 's/^/    /' < "$tmp/png.err"
+        fi
+    elif [ ! -s "$png_out" ]; then
+        fail=$((fail + 1))
+        printf '  FAIL PNG render produced empty output\n'
+    elif ! file "$png_out" 2>/dev/null | grep -q 'PNG image'; then
+        fail=$((fail + 1))
+        printf '  FAIL PNG output is not a PNG (file: %s)\n' \
+            "$(file "$png_out" 2>/dev/null || echo unknown)"
+    else
+        pass=$((pass + 1))
+        printf '  ok  PNG render produced a PNG\n'
+    fi
 
-echo "wide.json"
-run_and_compare "wide default (tb)"   "$FIX/wide.json"  tb
-run_and_compare "wide --as=ascii"     "$FIX/wide.json"  ascii --as=ascii
+    # stdin mode parity with file-arg mode.
+    cat "$FIX/happy.json" | "$SCRIPT" - --out "$tmp/stdin.png" >/dev/null 2>"$tmp/stdin.err"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        if grep -qE "$png_skip_re" "$tmp/stdin.err"; then
+            printf '  skip stdin PNG (Playwright/Chromium not available)\n'
+        else
+            fail=$((fail + 1))
+            printf '  FAIL stdin PNG exited %d\n' "$rc"
+            sed 's/^/    /' < "$tmp/stdin.err"
+        fi
+    elif [ ! -s "$tmp/stdin.png" ]; then
+        fail=$((fail + 1))
+        printf '  FAIL stdin PNG produced empty output\n'
+    elif ! file "$tmp/stdin.png" 2>/dev/null | grep -q 'PNG image'; then
+        fail=$((fail + 1))
+        printf '  FAIL stdin output is not a PNG (file: %s)\n' \
+            "$(file "$tmp/stdin.png" 2>/dev/null || echo unknown)"
+    else
+        pass=$((pass + 1))
+        printf '  ok  stdin mode produces PNG\n'
+    fi
+else
+    printf '  skip PNG render (node not on PATH)\n'
+fi
 
-echo "styled DOT structural checks"
-# Available-next: #304 is open, only pred (#288) is done → highlighted in blue.
-"$SCRIPT" "$FIX/happy.json" --as=dot > "$tmp/happy.dot" 2>/dev/null
-if grep -q '"304"\s*\[.*fillcolor="#cfe2ff"' "$tmp/happy.dot"; then
-    pass=$((pass + 1))
-    printf '  ok  available-next (#304) gets blue highlight\n'
-else
+echo "missing --out (must fail with guidance)"
+"$SCRIPT" "$FIX/happy.json" >"$tmp/noout.out" 2>"$tmp/noout.err"
+rc=$?
+if [ "$rc" -eq 0 ]; then
     fail=$((fail + 1))
-    printf '  FAIL #304 missing available-next highlight\n'
-fi
-# #306 is open but blocked (preds #304/#305 not done) → dashed muted style.
-if grep -q '"306"\s*\[.*style="filled,rounded,dashed"' "$tmp/happy.dot"; then
-    pass=$((pass + 1))
-    printf '  ok  blocked-open (#306) gets dashed style\n'
-else
+    printf '  FAIL no-args succeeded; --out should be required\n'
+elif ! grep -qE 'required.*--out|--out.*required|the following arguments are required' "$tmp/noout.err"; then
     fail=$((fail + 1))
-    printf '  FAIL #306 missing dashed blocked-open style\n'
-fi
-# Close sentinel gets a double border.
-if grep -q '"close"\s*\[.*peripheries="2"' "$tmp/happy.dot"; then
-    pass=$((pass + 1))
-    printf '  ok  close sentinel gets double border\n'
+    printf '  FAIL no-args stderr missing --out guidance\n'
+    sed 's/^/    /' < "$tmp/noout.err"
 else
-    fail=$((fail + 1))
-    printf '  FAIL close sentinel missing peripheries="2"\n'
-fi
-# Edges stay uniform — no penwidth bolding on the declared critical_path.
-# (We test by counting how many edge lines carry an explicit penwidth.)
-crit_edges=$(grep -E '"[^"]+"\s*->\s*"[^"]+"\s*\[' "$tmp/happy.dot" | grep -c 'penwidth' || true)
-if [ "$crit_edges" -eq 0 ]; then
     pass=$((pass + 1))
-    printf '  ok  no critical-path edge bolding (subjective; footer-only)\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL %d edges carry explicit penwidth (expected 0)\n' "$crit_edges"
+    printf '  ok  no --out fails with guidance\n'
 fi
-# --emoji=off strips emoji from labels but keeps the ✓/… markers.
-"$SCRIPT" "$FIX/happy.json" --as=dot --emoji=off > "$tmp/happy.dot.off" 2>/dev/null
+
+echo "internal DOT structural checks (via render_dot)"
+# We re-import render_dot to assert the visual encoding holds without
+# requiring a full PNG render (which needs Chromium). This keeps coverage
+# of the styled-DOT logic in CI environments where Playwright is missing.
+py3="$(command -v python3)"
+"$py3" - <<'PY' "$FIX/happy.json" > "$tmp/happy.dot" 2>"$tmp/happy.dot.err"
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("pdr", "scripts/plan-dag-render.py")
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+ir = json.loads(open(sys.argv[1]).read())
+print(mod.render_dot(ir, emoji=True))
+PY
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail=$((fail + 1))
+    printf '  FAIL render_dot import exited %d\n' "$rc"
+    sed 's/^/    /' < "$tmp/happy.dot.err"
+else
+    # Available-next: #304 is open, only pred (#288) is done → blue highlight.
+    if grep -q '"304"\s*\[.*fillcolor="#cfe2ff"' "$tmp/happy.dot"; then
+        pass=$((pass + 1))
+        printf '  ok  available-next (#304) gets blue highlight\n'
+    else
+        fail=$((fail + 1))
+        printf '  FAIL #304 missing available-next highlight\n'
+    fi
+    # #306 is open but blocked (preds #304/#305 not done) → dashed muted style.
+    if grep -q '"306"\s*\[.*style="filled,rounded,dashed"' "$tmp/happy.dot"; then
+        pass=$((pass + 1))
+        printf '  ok  blocked-open (#306) gets dashed style\n'
+    else
+        fail=$((fail + 1))
+        printf '  FAIL #306 missing dashed blocked-open style\n'
+    fi
+    # Close sentinel gets a double border.
+    if grep -q '"close"\s*\[.*peripheries="2"' "$tmp/happy.dot"; then
+        pass=$((pass + 1))
+        printf '  ok  close sentinel gets double border\n'
+    else
+        fail=$((fail + 1))
+        printf '  FAIL close sentinel missing peripheries="2"\n'
+    fi
+    # Critical-path edges stay unbolded — caller judgement, not topology.
+    crit_edges=$(grep -E '"[^"]+"\s*->\s*"[^"]+"\s*\[' "$tmp/happy.dot" | grep -c 'penwidth' || true)
+    if [ "$crit_edges" -eq 0 ]; then
+        pass=$((pass + 1))
+        printf '  ok  no critical-path edge bolding\n'
+    else
+        fail=$((fail + 1))
+        printf '  FAIL %d edges carry explicit penwidth (expected 0)\n' "$crit_edges"
+    fi
+fi
+
+echo "--emoji=off (visible through PNG-or-skip pathway)"
+if command -v node >/dev/null 2>&1; then
+    "$SCRIPT" "$FIX/happy.json" --emoji=off --out "$tmp/happy.off.png" \
+        >/dev/null 2>"$tmp/off.err"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        if grep -qE "$png_skip_re" "$tmp/off.err"; then
+            printf '  skip --emoji=off PNG (Playwright/Chromium not available)\n'
+        else
+            fail=$((fail + 1))
+            printf '  FAIL --emoji=off exited %d\n' "$rc"
+            sed 's/^/    /' < "$tmp/off.err"
+        fi
+    else
+        pass=$((pass + 1))
+        printf '  ok  --emoji=off renders a PNG\n'
+    fi
+fi
+# Independent of PNG availability: assert the underlying styled DOT is emoji-free.
+"$py3" - <<'PY' "$FIX/happy.json" > "$tmp/happy.dot.off" 2>/dev/null
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("pdr", "scripts/plan-dag-render.py")
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+ir = json.loads(open(sys.argv[1]).read())
+print(mod.render_dot(ir, emoji=False))
+PY
 if grep -q '✅\|🟡\|⬜\|🎯\|🏁' "$tmp/happy.dot.off"; then
     fail=$((fail + 1))
-    printf '  FAIL --emoji=off leaked emoji into output\n'
+    printf '  FAIL --emoji=off leaked emoji into DOT\n'
 else
     pass=$((pass + 1))
-    printf '  ok  --emoji=off strips emoji\n'
+    printf '  ok  --emoji=off DOT is emoji-free\n'
 fi
 if grep -q '#288 MCP ✓' "$tmp/happy.dot.off"; then
     pass=$((pass + 1))
-    printf '  ok  --emoji=off retains text markers\n'
+    printf '  ok  --emoji=off DOT retains ✓ / … text markers\n'
 else
     fail=$((fail + 1))
-    printf '  FAIL --emoji=off missing text marker\n'
-fi
-# --emoji=on with default (tb) target must NOT affect tb output — the layout
-# math assumes single-width chars. The flag is silently inert for tb/ascii.
-"$SCRIPT" "$FIX/happy.json" --emoji=on > "$tmp/happy.tb.emoji-on" 2>/dev/null
-if diff -u "$EXP/happy.tb" "$tmp/happy.tb.emoji-on" >/dev/null; then
-    pass=$((pass + 1))
-    printf '  ok  --emoji=on does not affect default (tb) output\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL --emoji=on altered tb output\n'
+    printf '  FAIL --emoji=off DOT missing text marker\n'
 fi
 
-echo "bad.json (must fail validation)"
-"$SCRIPT" "$FIX/bad.json" > "$tmp/bad.out" 2>"$tmp/bad.err"
+echo "bad.json (must fail validation before rasterising)"
+"$SCRIPT" "$FIX/bad.json" --out "$tmp/bad.png" > "$tmp/bad.out" 2>"$tmp/bad.err"
 rc=$?
 if [ "$rc" -ne 1 ]; then
     fail=$((fail + 1))
@@ -152,45 +216,90 @@ for token in 'duplicate node id' 'invalid status' 'missing label' \
         printf '  FAIL bad stderr missing: %s\n' "$token"
     fi
 done
+# Validation must short-circuit before invoking dot / node — no PNG should appear.
+if [ -e "$tmp/bad.png" ]; then
+    fail=$((fail + 1))
+    printf '  FAIL bad.json produced a PNG despite failing validation\n'
+else
+    pass=$((pass + 1))
+    printf '  ok  bad.json does not produce a PNG\n'
+fi
 
 echo "own-id-prefix boundary cases (must pass validation)"
-# Labels that mention a *different* issue number must not be rejected, and the
-# rendered output should keep the in-label reference intact.
-ref_ir='{"nodes":[{"id":"288","label":"MCP (see #500)","status":"done"}],"edges":[]}'
-echo "$ref_ir" | "$SCRIPT" - --as=ascii > "$tmp/ref.out" 2>"$tmp/ref.err"
+# Labels that mention a *different* issue number must not be rejected.
+"$py3" - <<'PY' > "$tmp/ref.out" 2>"$tmp/ref.err"
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("pdr", "scripts/plan-dag-render.py")
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+ir = json.loads('{"nodes":[{"id":"288","label":"MCP (see #500)","status":"done"}],"edges":[]}')
+errs = mod.validate(ir)
+if errs:
+    print("VALIDATION ERRORS:")
+    for e in errs: print(" -", e)
+    sys.exit(1)
+print(mod.render_dot(ir, emoji=False))
+PY
 rc=$?
 if [ "$rc" -ne 0 ]; then
     fail=$((fail + 1))
     printf '  FAIL label referencing another issue rejected (rc=%d)\n' "$rc"
     sed 's/^/    /' < "$tmp/ref.err"
-elif ! grep -qF '#288 MCP (see #500) [done]' "$tmp/ref.out"; then
+elif ! grep -qF '#288 MCP (see #500) ✓' "$tmp/ref.out"; then
     fail=$((fail + 1))
-    printf '  FAIL expected "#288 MCP (see #500) [done]" in output, got:\n'
+    printf '  FAIL expected "#288 MCP (see #500) ✓" in DOT, got:\n'
     sed 's/^/    /' < "$tmp/ref.out"
 else
     pass=$((pass + 1))
     printf '  ok  label mentioning a different issue passes (no false positive)\n'
 fi
-# Own id as a *prefix* of a longer id in the label must also pass: own id 28,
-# label "#288 different" — "#288" is not the own id.
-pref_ir='{"nodes":[{"id":"28","label":"#288 different","status":"open"}],"edges":[]}'
-echo "$pref_ir" | "$SCRIPT" - --as=ascii > "$tmp/pref.out" 2>"$tmp/pref.err"
+# Own id as a *prefix* of a longer id in the label must also pass.
+"$py3" - <<'PY' > "$tmp/pref.out" 2>"$tmp/pref.err"
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("pdr", "scripts/plan-dag-render.py")
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+ir = json.loads('{"nodes":[{"id":"28","label":"#288 different","status":"open"}],"edges":[]}')
+errs = mod.validate(ir)
+if errs:
+    for e in errs: print(" -", e)
+    sys.exit(1)
+print(mod.render_dot(ir, emoji=False))
+PY
 rc=$?
 if [ "$rc" -ne 0 ]; then
     fail=$((fail + 1))
     printf '  FAIL own-id-as-prefix-of-longer-id rejected (rc=%d)\n' "$rc"
     sed 's/^/    /' < "$tmp/pref.err"
-elif ! grep -qF '#28 #288 different [open]' "$tmp/pref.out"; then
+elif ! grep -qF '#28 #288 different' "$tmp/pref.out"; then
     fail=$((fail + 1))
-    printf '  FAIL expected "#28 #288 different [open]" in output, got:\n'
+    printf '  FAIL expected "#28 #288 different" in DOT, got:\n'
     sed 's/^/    /' < "$tmp/pref.out"
 else
     pass=$((pass + 1))
     printf '  ok  own id as prefix of a longer id in label passes\n'
 fi
 
+echo "empty-string close (must fail validation)"
+# Edges can reference "close" + a falsy ir.close, but render_dot needs a
+# real close id to emit the styled sentinel — validation catches the
+# empty-string case before render does.
+empty_close='{"nodes":[{"id":"1","label":"a","status":"done"}],"edges":[{"from":"1","to":"close","source":"closes"}],"close":""}'
+echo "$empty_close" | "$SCRIPT" - --out "$tmp/empty-close.png" \
+    > "$tmp/empty-close.out" 2>"$tmp/empty-close.err"
+rc=$?
+if [ "$rc" -ne 1 ]; then
+    fail=$((fail + 1))
+    printf '  FAIL empty-string close expected exit 1, got %d\n' "$rc"
+elif ! grep -qF 'empty string' "$tmp/empty-close.err"; then
+    fail=$((fail + 1))
+    printf '  FAIL empty-string close stderr missing guidance:\n'
+    sed 's/^/    /' < "$tmp/empty-close.err"
+else
+    pass=$((pass + 1))
+    printf '  ok  empty-string ir.close rejected with guidance\n'
+fi
+
 echo "cycle.json (must fail validation with a cycle error)"
-"$SCRIPT" "$FIX/cycle.json" > "$tmp/cycle.out" 2>"$tmp/cycle.err"
+"$SCRIPT" "$FIX/cycle.json" --out "$tmp/cycle.png" > "$tmp/cycle.out" 2>"$tmp/cycle.err"
 rc=$?
 if [ "$rc" -ne 1 ]; then
     fail=$((fail + 1))
@@ -207,210 +316,20 @@ else
     printf '  FAIL cycle stderr missing: contains a cycle\n'
 fi
 
-echo "stdin mode"
-for tgt in tb ascii; do
-    if [ "$tgt" = "tb" ]; then
-        cat "$FIX/happy.json" | "$SCRIPT" - > "$tmp/stdin.$tgt" 2>/dev/null
-    else
-        cat "$FIX/happy.json" | "$SCRIPT" - --as="$tgt" > "$tmp/stdin.$tgt" 2>/dev/null
-    fi
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-        fail=$((fail + 1))
-        printf '  FAIL stdin %s exited %d\n' "$tgt" "$rc"
-        continue
-    fi
-    assert_eq "stdin $tgt matches file-arg" "$tmp/stdin.$tgt" "$EXP/happy.$tgt"
-done
-
-echo "--as=svg smoke"
-"$SCRIPT" "$FIX/happy.json" --as=svg > "$tmp/happy.svg" 2>"$tmp/happy.svg.err"
+echo "missing dot on PATH (must error, not silently fall back)"
+PATH="" "$py3" "$SCRIPT" "$FIX/happy.json" --out "$tmp/nodot.png" \
+    > "$tmp/nodot.out" 2>"$tmp/nodot.err"
 rc=$?
-if [ "$rc" -ne 0 ]; then
+if [ "$rc" -eq 0 ]; then
     fail=$((fail + 1))
-    printf '  FAIL --as=svg exited %d\n' "$rc"
-    sed 's/^/    /' < "$tmp/happy.svg.err"
-elif ! grep -q '<svg ' "$tmp/happy.svg"; then
+    printf '  FAIL render without dot succeeded; expected failure\n'
+elif ! grep -qF 'requires `dot` (graphviz)' "$tmp/nodot.err"; then
     fail=$((fail + 1))
-    printf '  FAIL --as=svg output missing <svg> root\n'
-elif ! grep -q '</svg>' "$tmp/happy.svg"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg output missing </svg> close\n'
-elif ! grep -q '#d4edda' "$tmp/happy.svg"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg missing done-state fill (#d4edda)\n'
-elif ! grep -q '#cfe2ff' "$tmp/happy.svg"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg missing available-next fill (#cfe2ff)\n'
-elif ! grep -q '✅' "$tmp/happy.svg"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg missing emoji (auto-on for SVG)\n'
+    printf '  FAIL stderr without dot missing install guidance\n'
+    sed 's/^/    /' < "$tmp/nodot.err"
 else
     pass=$((pass + 1))
-    printf '  ok  --as=svg emits styled SVG with status fills + emoji\n'
-fi
-# --as=svg strips the XML prolog (and everything before the `<svg` tag,
-# including graphviz's generator comment) so the output is inline-paste-
-# safe — it must not start with `<?xml` or `<!DOCTYPE`.
-if grep -qE '^(<\?xml|<!DOCTYPE)' "$tmp/happy.svg"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg still contains XML prolog / DOCTYPE (should be stripped for inline use)\n'
-else
-    pass=$((pass + 1))
-    printf '  ok  --as=svg strips XML prolog / DOCTYPE (inline-safe)\n'
-fi
-# --as=svg --out writes to a file.
-"$SCRIPT" "$FIX/happy.json" --as=svg --out "$tmp/happy.out.svg" >/dev/null 2>&1
-if [ -s "$tmp/happy.out.svg" ] && grep -q '<svg ' "$tmp/happy.out.svg"; then
-    pass=$((pass + 1))
-    printf '  ok  --as=svg --out writes to file\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg --out did not write a valid SVG\n'
-fi
-# --as=svg --emoji=off strips emoji.
-"$SCRIPT" "$FIX/happy.json" --as=svg --emoji=off > "$tmp/happy.svg.off" 2>/dev/null
-if grep -q '✅\|🟡\|⬜\|🎯\|🏁' "$tmp/happy.svg.off"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=svg --emoji=off leaked emoji\n'
-else
-    pass=$((pass + 1))
-    printf '  ok  --as=svg --emoji=off strips emoji\n'
-fi
-
-echo "--as=html smoke"
-"$SCRIPT" "$FIX/happy.json" --as=html > "$tmp/happy.html" 2>"$tmp/happy.html.err"
-rc=$?
-if [ "$rc" -ne 0 ]; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=html exited %d\n' "$rc"
-    sed 's/^/    /' < "$tmp/happy.html.err"
-else
-    html_ok=1
-    for token in '<!DOCTYPE html>' '<title>plan-dag — close #300</title>' \
-                 'name="viewport"' \
-                 'class="dag"' '<svg ' '</svg>' \
-                 'Critical path:' '#301 → #305 → #306 → #307 → close' \
-                 '@media (prefers-color-scheme: dark)'; do
-        if ! grep -qF -- "$token" "$tmp/happy.html"; then
-            fail=$((fail + 1))
-            printf '  FAIL --as=html missing token: %s\n' "$token"
-            html_ok=0
-        fi
-    done
-    if [ "$html_ok" -eq 1 ]; then
-        pass=$((pass + 1))
-        printf '  ok  --as=html emits self-contained page with critical-path footer\n'
-    fi
-    # Legend is intentionally not part of the HTML output — assert it stays gone.
-    if grep -qE 'class="legend"|>blocked<|>in-progress<|>available next<' "$tmp/happy.html"; then
-        fail=$((fail + 1))
-        printf '  FAIL --as=html unexpectedly emitted legend markup\n'
-    else
-        pass=$((pass + 1))
-        printf '  ok  --as=html omits legend (status colors + emoji are self-explanatory)\n'
-    fi
-fi
-# --as=html --out writes to a file.
-"$SCRIPT" "$FIX/happy.json" --as=html --out "$tmp/happy.out.html" >/dev/null 2>&1
-if [ -s "$tmp/happy.out.html" ] && grep -q '<!DOCTYPE html>' "$tmp/happy.out.html"; then
-    pass=$((pass + 1))
-    printf '  ok  --as=html --out writes to file\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL --as=html --out did not write valid HTML\n'
-fi
-# A graph without a `close` sentinel drops the " — close #N" title suffix
-# and the footer disappears when no critical_path is declared.
-closeless_ir='{"nodes":[{"id":"1","label":"a","status":"done"},{"id":"2","label":"b","status":"open"}],"edges":[{"from":"1","to":"2","source":"depends-on"}]}'
-echo "$closeless_ir" | "$SCRIPT" - --as=html > "$tmp/closeless.html" 2>/dev/null
-if grep -q '<title>plan-dag</title>' "$tmp/closeless.html"; then
-    pass=$((pass + 1))
-    printf '  ok  --as=html omits close suffix when ir.close is unset\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL --as=html title for closeless IR (got: %s)\n' \
-        "$(grep -o '<title>[^<]*</title>' "$tmp/closeless.html" | head -1)"
-fi
-if grep -q 'Critical path:' "$tmp/closeless.html"; then
-    fail=$((fail + 1))
-    printf '  FAIL --as=html emitted footer with no critical_path\n'
-else
-    pass=$((pass + 1))
-    printf '  ok  --as=html omits footer when no critical_path declared\n'
-fi
-echo "--as=dot --out smoke"
-"$SCRIPT" "$FIX/happy.json" --as=dot --out "$tmp/happy.out.dot" >/dev/null 2>&1
-if [ -s "$tmp/happy.out.dot" ] && grep -q '^digraph plan' "$tmp/happy.out.dot"; then
-    pass=$((pass + 1))
-    printf '  ok  --as=dot --out writes to file\n'
-else
-    fail=$((fail + 1))
-    printf '  FAIL --as=dot --out did not write valid DOT to file\n'
-fi
-
-echo "--as=png smoke (skipped without node + Playwright Chromium)"
-# Skip markers — any of these in the helper's stderr means the local env is
-# missing a Playwright/Chromium piece and the test should be skipped rather
-# than fail loudly.
-png_skip_re='cannot load Playwright|Executable doesn.t exist|browserType\.launch|playwright install'
-if command -v node >/dev/null 2>&1; then
-    png_out="$tmp/happy.png"
-    "$SCRIPT" "$FIX/happy.json" --as=png --out "$png_out" >"$tmp/png.out" 2>"$tmp/png.err"
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-        if grep -qE "$png_skip_re" "$tmp/png.err"; then
-            printf '  skip --as=png (Playwright/Chromium not available)\n'
-        else
-            fail=$((fail + 1))
-            printf '  FAIL --as=png exited %d\n' "$rc"
-            sed 's/^/    /' < "$tmp/png.err"
-        fi
-    elif [ ! -s "$png_out" ]; then
-        fail=$((fail + 1))
-        printf '  FAIL --as=png produced empty output\n'
-    elif ! file "$png_out" 2>/dev/null | grep -q 'PNG image'; then
-        fail=$((fail + 1))
-        printf '  FAIL --as=png output is not a PNG (file: %s)\n' \
-            "$(file "$png_out" 2>/dev/null || echo unknown)"
-    else
-        pass=$((pass + 1))
-        printf '  ok  --as=png produced a PNG\n'
-    fi
-
-    # Also confirm --as=png errors clearly when --out is missing.
-    "$SCRIPT" "$FIX/happy.json" --as=png >"$tmp/png-noout.out" 2>"$tmp/png-noout.err"
-    rc=$?
-    if [ "$rc" -eq 0 ]; then
-        fail=$((fail + 1))
-        printf '  FAIL --as=png without --out should fail, got 0\n'
-    elif ! grep -q 'requires --out' "$tmp/png-noout.err"; then
-        fail=$((fail + 1))
-        printf '  FAIL --as=png without --out: stderr missing guidance\n'
-    else
-        pass=$((pass + 1))
-        printf '  ok  --as=png without --out fails with guidance\n'
-    fi
-else
-    printf '  skip --as=png (node not on PATH)\n'
-fi
-
-echo "auto-fallback (dot not on PATH → --as=ascii)"
-py3="$(command -v python3)"
-PATH="" "$py3" "$SCRIPT" "$FIX/happy.json" > "$tmp/fallback.out" 2>"$tmp/fallback.err"
-rc=$?
-if [ "$rc" -ne 0 ]; then
-    fail=$((fail + 1))
-    printf '  FAIL fallback exited %d\n' "$rc"
-    sed 's/^/    /' < "$tmp/fallback.err"
-elif ! grep -q 'falling back to --as=ascii' "$tmp/fallback.err"; then
-    fail=$((fail + 1))
-    printf '  FAIL fallback: stderr missing fallback note\n'
-    sed 's/^/    /' < "$tmp/fallback.err"
-else
-    pass=$((pass + 1))
-    printf '  ok  fallback emits stderr note\n'
-    assert_eq "fallback output matches --as=ascii golden" "$tmp/fallback.out" "$EXP/happy.ascii"
+    printf '  ok  missing dot errors with install guidance\n'
 fi
 
 echo

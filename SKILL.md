@@ -1,14 +1,16 @@
 ---
 name: plan-dag
-description: Render the current plan as a monospace-safe text dependency DAG (Unicode box-drawing glyphs) — nodes are issues / sub-issues / PRs, edges come from sub-issue links plus dependency-language prose ("Depends on", "Part of", "Blocks", "Closes") and PR / commit cross-references, and every node carries a done / in-progress / open marker so sequencing and critical path are obvious at a glance. Use when asked "plan as dag", "draw a dag", "dag diagram", "show the dependency graph", "what's blocking what", "what's the critical path", "what can be parallelized", "what's left for #N", or right after a `what's next` survey when sequencing the next pick is the actual question.
+description: Render the current plan as a high-DPI PNG dependency DAG — nodes are issues / sub-issues / PRs, edges come from sub-issue links plus dependency-language prose ("Depends on", "Part of", "Blocks", "Closes") and PR / commit cross-references, and every node is color-coded done / in-progress / available-next / blocked so sequencing and critical path are obvious at a glance. Use when asked "plan as dag", "draw a dag", "dag diagram", "show the dependency graph", "what's blocking what", "what's the critical path", "what can be parallelized", "what's left for #N", or right after a `what's next` survey when sequencing the next pick is the actual question.
 allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git branch:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), mcp__github__issue_read, mcp__github__list_issues, mcp__github__search_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read
 ---
 
 # plan-dag
 
-Render the current plan as a dependency DAG so sequencing, the critical path, and parallelizable work are visible at a glance. Default output is monospace text using Unicode box-drawing glyphs (`─`, `►`, `┐ ├ ┤ └`) so it lands cleanly in chat, terminals, and PR descriptions.
+Render the current plan as a dependency DAG so sequencing, the critical path, and parallelizable work are visible at a glance. Output is a high-DPI PNG with status fills, an "available next" highlight, and a double-bordered close sentinel — rasterised from a styled graphviz layout through headless Chromium, then sent to the user via `SendUserFile`.
 
 This skill is repo-agnostic. It assumes a GitHub-backed issue tracker with sub-issue links and dependency-language prose; it makes no assumptions about specific labels, area taxonomies, or repo-specific dev-process skills.
+
+**Why PNG and not HTML / ASCII?** PNG is the only output that survives every chat surface the skill targets. ASCII / Unicode box-drawing loses column alignment when surfaces reflow whitespace or apply syntax highlighting, and it can't carry the color/status fills that make state legible at a glance. Self-contained HTML pages don't render inline in chat — they download as attachments, which defeats the point of an at-a-glance diagram. PNG renders inline, keeps color, and doesn't depend on the host's font or rendering quirks.
 
 ## When to use
 
@@ -29,7 +31,7 @@ Skip when:
 |-----------|----------|
 | **Scope** | Inferred — current branch's spec, the umbrella the user named, or the open issues just surveyed. |
 | **Granularity** | Spec-level; drop to sub-issue / PR level for an umbrella that has fanned out. |
-| **Output format** | Monospace text (Unicode box-drawing) laid out top-to-bottom via graphviz (default). `--as=html --out <path>` for a self-contained HTML page with the SVG and critical-path footer (preferred on web surfaces that render HTML inline — Claude Code on the web, claude.ai); `--as=svg` for raw inline SVG; `--as=png --out <path>` for a high-DPI rasterised image; `--as=ascii` for a pure-ASCII tree; `--as=dot` for raw DOT. |
+| **Output** | High-DPI PNG (only target). `--out <path>` is required; emoji status indicators are on by default and can be turned off with `--emoji=off` if the rendering system lacks a color emoji font. |
 
 ## Workflow
 
@@ -37,7 +39,7 @@ Skip when:
 1. Discover    Pull issues / sub-issues / PRs in scope
 2. Classify    Mark each node done / in-progress / open
 3. Edge-build  Read dependencies from sub-issue links + body prose
-4. Render      Group by track; cross-edges last; critical path callout
+4. Render      Emit JSON IR → PNG → SendUserFile + prose commentary
 ```
 
 ### 1. Discover
@@ -57,15 +59,15 @@ For each node, capture:
 
 ### 2. Classify
 
-Each node gets exactly one marker:
+Each node gets exactly one status:
 
-| State | Marker | Definition |
-|-------|--------|------------|
-| Done | `✓` | Closed + `state_reason: completed`, or merged PR. |
-| In-progress | `…` | Open + `in-progress` label, or an open PR exists for it. |
-| Open | _(none)_ | Open + `planned` / `draft`, no PR. |
+| State | Definition |
+|-------|------------|
+| `done` | Closed + `state_reason: completed`, or merged PR. |
+| `in_progress` | Open + `in-progress` label, or an open PR exists for it. |
+| `open` | Open + `planned` / `draft`, no PR. |
 
-Don't render "blocked" as a separate marker — the inbound edge to a non-done node already shows it. The marker is for the reader's eye, not the graph topology.
+Don't render "blocked" as a separate status — the renderer derives it from the graph (any `open` node with a non-done predecessor) and styles it with a dashed muted fill. Conversely, an `open` node whose predecessors are all `done` is dual-encoded as the "available next" highlight.
 
 ### 3. Edge-build
 
@@ -79,7 +81,7 @@ If a dependency is "obvious to me but uncited", the node label can hint at it; t
 
 ### 4. Render
 
-Emit a JSON IR matching the schema below, then invoke the renderer. **Do not hand-draw ASCII boxes** — the renderer produces deterministically correct layout that the AI's spatial reasoning will not match, especially with cross-edges and fan-out.
+Emit a JSON IR matching the schema below, then invoke the renderer. **Do not hand-draw boxes** — the renderer produces deterministically correct layout that the AI's spatial reasoning will not match, especially with cross-edges and fan-out.
 
 **Schema:**
 
@@ -99,14 +101,12 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 }
 ```
 
-- `status` ∈ `{done, in_progress, open}`; defaults to `open`. Status markers (`✓`, `…` in box-drawing mode; `[done]` / `[wip]` / `[open]` in ASCII mode) are added by the renderer — do not embed them in `label`.
+- `status` ∈ `{done, in_progress, open}`; defaults to `open`. Status is rendered as a fill color plus a leading emoji — do not embed markers in `label`.
 - `edges[].source` ∈ `{sub-issue, depends-on, pr-link, closes, part-of}`, required. This is the citation rule from Conventions made enforceable: no edge without a documented source on GitHub.
 - Every `from` / `to` resolves to a declared node id, or the literal `"close"`.
-- `critical_path` is optional; renderer appends it as a callout footer under the box-drawing, ASCII, and HTML targets (and as `Critical path:` text in the ASCII output).
+- `critical_path` is optional; communicate it in prose alongside the rendered PNG, not inside the image.
 
-**Invocation.** Default emits top-to-bottom box-drawing via graphviz (requires `dot` on PATH — `apt install graphviz`, or `brew install graphviz`) and is the right choice for terminal-only surfaces. `--as=html --out <path>` writes a self-contained HTML page that wraps the styled SVG with a critical-path footer — preferred on web surfaces that render HTML inline (Claude Code on the web, claude.ai web/mobile). `--as=svg` emits the same styled SVG without the HTML chrome — useful for embedding in markdown / GitHub / external docs. Both need only `dot`. `--as=png --out <path>` rasterises the same DOT through `dot -Tsvg` and a headless Chromium screenshot at deviceScaleFactor=2 — sharper than `dot -Tpng`, but heavier (needs `dot`, `node`, and Playwright Chromium); use it on surfaces that show inline PNGs but not inline HTML. `--as=ascii` produces a pure-ASCII indented tree with no external dependency — used explicitly for restricted terminals, and selected automatically (with a stderr note) when `dot` is missing. `--as=dot` emits raw DOT source for piping or debugging.
-
-**Visual encoding (DOT / SVG / HTML / PNG targets only).** Status is dual-encoded by fill and a leading emoji so the eye picks up state before reading the label:
+**Visual encoding.** Status is dual-encoded by fill and a leading emoji so the eye picks up state before reading the label:
 
 | State | Fill | Border | Emoji |
 |-------|------|--------|-------|
@@ -116,11 +116,11 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 | Open + blocked | near-white | grey, dashed | ⬜ |
 | Close sentinel | white | double | 🏁 |
 
-The "available next" highlight is computed from the graph (open + every predecessor is `done`) — no IR field for it. Critical-path edges are *not* bolded: which path is "the" critical path is a caller judgement, and elevating it visually would conflate the recommendation with the graph's topology. Keep the critical path in `ir.critical_path` and let the renderer print it as a footer / let prose carry the next-pick recommendation.
+The "available next" highlight is computed from the graph (open + every predecessor is `done`) — no IR field for it. Critical-path edges are *not* bolded: which path is "the" critical path is a caller judgement, and elevating it visually would conflate the recommendation with the graph's topology. Keep the critical path in `ir.critical_path` and let prose carry the next-pick recommendation under the rendered PNG.
 
-The text box-drawing and ASCII targets stay glyph-only (`✓` / `…` markers) because their layout math counts characters, not visual columns, and emoji are East Asian Wide. The `--emoji` flag controls whether emoji are emitted in DOT / SVG / HTML / PNG labels: `auto` (default) is on for those four styled targets, off for text targets; `on` / `off` force it. Turn `off` if a target system lacks a color emoji font and you see tofu boxes in the rendered SVG / HTML / PNG.
+The `--emoji` flag controls whether status emoji are emitted: `on` (default) shows ✅ / 🟡 / 🎯 / ⬜ / 🏁 emoji; `off` falls back to trailing ✓ / … text markers. Turn `off` if the target system lacks a color emoji font and the PNG shows tofu boxes.
 
-The renderer ships inside the skill. Use the path that matches how the skill was installed:
+**Invocation.** The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
 - **Project-scope install** (default for `npx skills add onsager-ai/onsager-skills` from a repo root): `.claude/skills/plan-dag/scripts/plan-dag-render.py`
 - **User-global install** (`npx skills add -g …`): `~/.claude/skills/plan-dag/scripts/plan-dag-render.py`
@@ -131,50 +131,35 @@ Pick whichever exists. If unsure, `test -x .claude/skills/plan-dag/scripts/plan-
 SCRIPT=.claude/skills/plan-dag/scripts/plan-dag-render.py   # project install
 # SCRIPT=~/.claude/skills/plan-dag/scripts/plan-dag-render.py  # global install
 
-# default: top-to-bottom box-drawing via graphviz
-"$SCRIPT" /tmp/plan.json
+# default: high-DPI PNG with emoji status indicators
+"$SCRIPT" /tmp/plan.json --out /tmp/plan-dag.png
 
-# self-contained HTML page (preferred on Claude Code on the web / claude.ai; then SendUserFile)
-"$SCRIPT" /tmp/plan.json --as=html --out /tmp/plan-dag.html
-
-# raw inline SVG (embed in markdown / GitHub / docs; stdout by default)
-"$SCRIPT" /tmp/plan.json --as=svg --out /tmp/plan-dag.svg
-
-# high-DPI PNG (fallback for surfaces that render PNGs inline but not HTML)
-"$SCRIPT" /tmp/plan.json --as=png --out /tmp/plan-dag.png
-
-# pure ASCII tree (no external deps; auto-selected when `dot` is missing)
-"$SCRIPT" /tmp/plan.json --as=ascii
-
-# raw DOT for piping / debugging (styled by default; --emoji=off for portability)
-"$SCRIPT" /tmp/plan.json --as=dot
-"$SCRIPT" /tmp/plan.json --as=dot --emoji=off
+# emoji off — falls back to ✓ / … text markers in node labels
+"$SCRIPT" /tmp/plan.json --out /tmp/plan-dag.png --emoji=off
 ```
+
+The renderer needs `dot` (graphviz; `apt install graphviz` / `brew install graphviz`) on PATH for the SVG layout step, and `node` (≥18) + Playwright Chromium (`npm i -g playwright && npx playwright install chromium`) for the rasterisation step. Both checks run upfront and fail loudly with install guidance — there is no silent fallback to text or ASCII, by design (the formats removed had limitations the PNG output exists to avoid).
 
 If the renderer aborts with `IR validation failed`, fix the IR — do not work around it by hand-drawing. The validation surface is the citation rule (`Conventions › No invented edges`) made executable.
 
 **Response handling after running the renderer:**
 
-- Wrap the renderer's stdout in a fenced block tagged ` ```text ` — never `bash` or unlabeled. Syntax highlighting recolors box-drawing characters (`─`, `│`, `┌`, `►`) and breaks the visual.
-- Do **not** retype or paraphrase the renderer output. Copy the tool result verbatim. A single shifted character destroys column alignment, and the AI's spatial reasoning is the failure mode the script was introduced to eliminate.
-- Surface rules:
-  - **Claude Code (terminal runtime):** the stdout is already visible in the terminal pane. Do not duplicate it in the reply. Add commentary only — critical path summary, next pickable node, sequencing rationale.
-  - **Claude Code on the web, claude.ai web / mobile (HTML-capable, no real terminal pane):** prefer the HTML path. Render with `--as=html --out /tmp/plan-dag.html` and send the file via `SendUserFile` so the user sees a scalable diagram with the critical-path footer baked in. Status is communicated by the per-node fill color plus a label marker — leading emoji by default, or trailing `✓` / `…` glyphs with `--emoji=off` — so the styled SVG is self-explanatory with no separate legend. PNG (`--as=png --out /tmp/plan-dag.png`) is a fine fallback on surfaces that render inline images but not HTML. Add prose commentary below the file — critical path, next pickable node — but don't echo the text-art version too.
-  - **Markdown / GitHub PR descriptions:** prefer the default text box-drawing in a ` ```text ` block — GitHub renders it faithfully and it stays diff-able. For richer rendering in external docs or notion-style surfaces, `--as=svg` produces a few-KB embeddable SVG.
-  - **No image surface available (raw terminals, restricted runtimes):** the default stdout box-drawing remains the right output.
-- For very wide graphs (>10 nodes with cross-edges) where the default box-drawing is unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3. The SVG / HTML / PNG targets scale further before they become unwieldy than the text target does.
+- Send the PNG via `SendUserFile` so it renders inline as part of the assistant message.
+- Add prose commentary below the file — critical path, next pickable node, sequencing rationale. The PNG carries the topology; the prose carries the recommendation.
+- Do **not** re-render the same plan in another format and attach both — one DAG per response.
+- For very wide graphs (>10 nodes with cross-edges) where the single PNG becomes unwieldy, split the plan into per-track DAGs (one renderer call per track) and render the cross-edges as a final short prose list, per the existing "Cross-edges" convention in §3.
 
 ## Conventions
 
 - **No invented edges.** If you can't cite the source (sub-issue link, body prose, PR header), don't draw it.
-- **Summarize done nodes when dense.** More than ~3 done nodes in a track? Collapse to `Landed: #A #B #C ✓` rather than enumerating.
+- **Summarize done nodes when dense.** More than ~3 done nodes in a track? Collapse to `Landed: #A #B #C ✓` in prose rather than enumerating them in the graph.
 - **One DAG per response.** Don't render the same plan twice under different framings — pick the framing that answers the question that was actually asked.
-- **End with the picked path.** A DAG without a recommended sequence is a wall of boxes. Close with the critical path and the next pickable node, framed so the user can redirect.
+- **End with the picked path.** A DAG without a recommended sequence is a wall of boxes. Close with the critical path and the next pickable node in prose, framed so the user can redirect.
 - **Don't editorialize inside the diagram.** Commentary ("this looks risky", "we should reorder") goes in prose above or below, never inside a node label.
 
 ## Tests
 
-Golden tests live next to the renderer at `scripts/plan-dag-render.test.sh` and exercise the validator, both render targets, and the auto-fallback path against fixtures in `fixtures/`. Run with the same install-aware path the renderer uses:
+Tests live next to the renderer at `scripts/plan-dag-render.test.sh` and exercise validation (bad IR, cycle detection, own-id-prefix boundary cases), the styled DOT structural checks (status fills, available-next, blocked-dashed, close double border), and the end-to-end PNG smoke. The PNG smoke is auto-skipped when Playwright Chromium is unavailable so the validator coverage still runs in restricted CI. Run with the same install-aware path the renderer uses:
 
 ```bash
 # project-scope install
@@ -186,10 +171,10 @@ Golden tests live next to the renderer at `scripts/plan-dag-render.test.sh` and 
 
 Both forms are in `allowed-tools` so Claude Code doesn't re-prompt for permission. The test script internally `cd`s into the skill root and invokes `scripts/plan-dag-render.py` as a child process — that child invocation runs inside the script's own shell, not through Claude Code's permission engine, so it doesn't need a separate allowlist entry.
 
-Requires `dot` (graphviz) on PATH.
+Requires `dot` (graphviz) on PATH; the PNG smoke additionally requires `node` + Playwright Chromium.
 
 ## Related skills
 
 - The repo's spec-driven-development loop skill (e.g. `onsager-dev-process`, `duhem-dev-process`) — the parent / child / depends-on semantics the DAG visualizes.
 - The repo's `issue-spec` skill — how parent / child / depends-on edges are persisted on GitHub.
-- The repo's PR-lifecycle skill — how "in-progress" status flips on PR open / merge, which drives the `…` marker.
+- The repo's PR-lifecycle skill — how "in-progress" status flips on PR open / merge, which drives the amber fill on the rendered PNG.
