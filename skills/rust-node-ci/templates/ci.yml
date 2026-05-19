@@ -1,0 +1,62 @@
+# Hybrid CI — Workflow Template
+#
+# CI workflow for Rust+Node.js hybrid projects.
+# Runs on PRs and pushes to main.
+#
+# CUSTOMIZE: Update the trigger branches, Node/Rust versions,
+# and build commands to match your project.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node.js Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      # CUSTOMIZE: Pin the forge ref to a version tag (e.g., @v1)
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-version: '22'
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+  rust:
+    name: Rust Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace

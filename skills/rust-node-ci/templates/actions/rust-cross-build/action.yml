@@ -1,0 +1,52 @@
+name: 'Rust Cross Build'
+description: 'Build Rust packages for a specific target platform and upload artifacts'
+
+inputs:
+  target:
+    description: 'Rust target triple (e.g., aarch64-apple-darwin)'
+    required: true
+  packages:
+    description: 'Space-separated Cargo package names to build'
+    required: true
+  platform:
+    description: 'Platform key for artifact naming (e.g., darwin-arm64)'
+    required: true
+  profile:
+    description: 'Cargo build profile'
+    required: false
+    default: 'release'
+  artifact-prefix:
+    description: 'Prefix for uploaded artifact names'
+    required: false
+    default: 'binary'
+  rust-cache:
+    description: 'Enable Rust build caching'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.target }}
+
+    - uses: Swatinem/rust-cache@v2
+      if: ${{ inputs.rust-cache == 'true' }}
+      with:
+        shared-key: ${{ inputs.platform }}
+
+    - name: Build packages
+      shell: bash
+      run: |
+        for pkg in ${{ inputs.packages }}; do
+          echo "🔨 Building $pkg for ${{ inputs.target }}"
+          cargo build --package "$pkg" --${{ inputs.profile }} --target ${{ inputs.target }}
+        done
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-prefix }}-${{ inputs.platform }}
+        path: target/${{ inputs.target }}/${{ inputs.profile }}/
+        retention-days: 1

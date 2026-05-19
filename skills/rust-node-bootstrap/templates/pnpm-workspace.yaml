@@ -1,0 +1,4 @@
+# pnpm workspace definition
+# CUSTOMIZE: Add package directories as needed
+packages:
+  - 'packages/*'

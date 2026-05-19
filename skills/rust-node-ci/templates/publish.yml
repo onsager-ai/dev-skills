@@ -1,0 +1,138 @@
+# Hybrid CI — Publish Workflow Template
+#
+# Publishes Rust binaries as npm platform packages.
+# Triggered by GitHub releases or manual dispatch.
+#
+# CUSTOMIZE: Update the matrix, package names, scope, and
+# publish scripts to match your project.
+#
+# Prerequisites:
+#   - NPM_TOKEN secret configured in repository settings
+#   - publish.config.ts in your project root
+#   - Publish scripts in scripts/ directory
+
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run (skip actual publishing)'
+        type: boolean
+        default: false
+
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+jobs:
+  compute-version:
+    name: Compute Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      npm-tag: ${{ steps.version.outputs.npm-tag }}
+      is-dev: ${{ steps.version.outputs.is-dev }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: base
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      # CUSTOMIZE: Pin the forge ref to a version tag (e.g., @v1)
+      - uses: ./.github/actions/compute-version
+        id: version
+        with:
+          base-version: ${{ steps.base.outputs.version }}
+          is-release: ${{ github.event_name == 'release' }}
+
+  rust-binaries:
+    name: Build ${{ matrix.platform }}
+    needs: compute-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # CUSTOMIZE: Add or remove platforms as needed
+          - { os: macos-latest,   target: x86_64-apple-darwin,      platform: darwin-x64 }
+          - { os: macos-latest,   target: aarch64-apple-darwin,     platform: darwin-arm64 }
+          - { os: ubuntu-22.04,   target: x86_64-unknown-linux-gnu, platform: linux-x64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc,   platform: windows-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # CUSTOMIZE: Pin the forge ref to a version tag (e.g., @v1)
+      # CUSTOMIZE: Set 'packages' to your Cargo package name(s)
+      - uses: ./.github/actions/rust-cross-build
+        with:
+          target: ${{ matrix.target }}
+          packages: my-cli
+          platform: ${{ matrix.platform }}
+
+  publish-platform:
+    name: Publish Platform Packages
+    needs: [compute-version, rust-binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: artifacts/
+          merge-multiple: false
+
+      # CUSTOMIZE: Update these scripts to match your project
+      - name: Sync versions
+        run: pnpm tsx scripts/sync-versions.ts
+
+      - name: Generate platform manifests
+        run: pnpm tsx scripts/generate-platform-manifests.ts
+
+      - name: Copy binaries
+        run: bash scripts/copy-platform-binaries.sh
+
+      - name: Validate binaries
+        run: pnpm tsx scripts/validate-platform-binaries.ts
+
+      - name: Prepare publish
+        run: pnpm tsx scripts/prepare-publish.ts
+
+      - name: Validate no workspace protocol
+        run: pnpm tsx scripts/validate-no-workspace-protocol.ts
+
+      - name: Publish platform packages
+        if: ${{ !inputs.dry-run }}
+        run: pnpm tsx scripts/publish-platform-packages.ts --tag ${{ needs.compute-version.outputs.npm-tag }}
+
+      - name: Publish platform packages (dry run)
+        if: ${{ inputs.dry-run }}
+        run: pnpm tsx scripts/publish-platform-packages.ts --dry-run --allow-local
+
+  publish-main:
+    name: Publish Main Packages
+    needs: [compute-version, publish-platform]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-workspace
+
+      # CUSTOMIZE: Update the packages list to match your platform packages
+      - uses: ./.github/actions/wait-npm-propagation
+        if: ${{ !inputs.dry-run }}
+        with:
+          packages: '["@scope/cli-darwin-x64", "@scope/cli-darwin-arm64", "@scope/cli-linux-x64", "@scope/cli-windows-x64"]'
+          version: ${{ needs.compute-version.outputs.version }}
+
+      - name: Publish main packages
+        if: ${{ !inputs.dry-run }}
+        run: pnpm tsx scripts/publish-main-packages.ts --tag ${{ needs.compute-version.outputs.npm-tag }}
+
+      - name: Publish main packages (dry run)
+        if: ${{ inputs.dry-run }}
+        run: pnpm tsx scripts/publish-main-packages.ts --dry-run --allow-local
+
+      - name: Restore packages
+        run: pnpm tsx scripts/restore-packages.ts

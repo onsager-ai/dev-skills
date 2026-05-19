@@ -1,0 +1,37 @@
+name: 'Setup Workspace'
+description: 'Checkout, set up pnpm + Node.js, install dependencies with caching'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '22'
+  pnpm-version:
+    description: 'pnpm version (omit to use packageManager field)'
+    required: false
+  install-args:
+    description: 'Extra args for pnpm install'
+    required: false
+    default: '--frozen-lockfile'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      if: ${{ inputs.pnpm-version != '' }}
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - uses: pnpm/action-setup@v4
+      if: ${{ inputs.pnpm-version == '' }}
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install ${{ inputs.install-args }}

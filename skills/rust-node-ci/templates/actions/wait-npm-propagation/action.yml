@@ -1,0 +1,74 @@
+name: 'Wait npm Propagation'
+description: 'Poll npm registry until specified packages are visible at a given version'
+
+inputs:
+  packages:
+    description: 'JSON array of package names to check (e.g., ["@scope/cli-darwin-arm64"])'
+    required: true
+  version:
+    description: 'Version string to wait for'
+    required: true
+  max-retries:
+    description: 'Maximum number of retry attempts'
+    required: false
+    default: '20'
+  initial-delay:
+    description: 'Initial delay between retries in seconds'
+    required: false
+    default: '5'
+  max-delay:
+    description: 'Maximum delay between retries in seconds'
+    required: false
+    default: '30'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Wait for npm propagation
+      shell: bash
+      run: |
+        PACKAGES='${{ inputs.packages }}'
+        VERSION="${{ inputs.version }}"
+        MAX_RETRIES=${{ inputs.max-retries }}
+        DELAY=${{ inputs.initial-delay }}
+        MAX_DELAY=${{ inputs.max-delay }}
+
+        echo "⏳ Waiting for packages to propagate on npm registry..."
+        echo "   Version: $VERSION"
+        echo "   Packages: $PACKAGES"
+
+        # Parse JSON array
+        PKGS=$(echo "$PACKAGES" | jq -r '.[]')
+
+        for pkg in $PKGS; do
+          echo ""
+          echo "📦 Checking $pkg@$VERSION..."
+          attempt=0
+          current_delay=$DELAY
+
+          while [ $attempt -lt $MAX_RETRIES ]; do
+            attempt=$((attempt + 1))
+
+            if npm view "$pkg@$VERSION" version 2>/dev/null | grep -q "$VERSION"; then
+              echo "   ✅ $pkg@$VERSION is available (attempt $attempt)"
+              break
+            fi
+
+            if [ $attempt -eq $MAX_RETRIES ]; then
+              echo "   ❌ $pkg@$VERSION not available after $MAX_RETRIES attempts"
+              exit 1
+            fi
+
+            echo "   ⏳ Attempt $attempt/$MAX_RETRIES - waiting ${current_delay}s..."
+            sleep $current_delay
+
+            # Exponential backoff with cap
+            current_delay=$((current_delay * 2))
+            if [ $current_delay -gt $MAX_DELAY ]; then
+              current_delay=$MAX_DELAY
+            fi
+          done
+        done
+
+        echo ""
+        echo "✅ All packages propagated successfully!"

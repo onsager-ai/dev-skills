@@ -1,0 +1,52 @@
+name: 'Compute Version'
+description: 'Compute effective version and npm tag for dev or production releases'
+
+inputs:
+  base-version:
+    description: 'Base version from package.json (e.g., 0.2.15)'
+    required: true
+  is-release:
+    description: 'Whether this is a production release (true/false)'
+    required: false
+    default: 'false'
+  run-id:
+    description: 'GitHub Actions run ID for dev suffix'
+    required: false
+    default: ${{ github.run_id }}
+
+outputs:
+  version:
+    description: 'Computed effective version'
+    value: ${{ steps.compute.outputs.version }}
+  npm-tag:
+    description: 'npm dist-tag to use (latest or dev)'
+    value: ${{ steps.compute.outputs.npm_tag }}
+  is-dev:
+    description: 'Whether this is a dev build'
+    value: ${{ steps.compute.outputs.is_dev }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: compute
+      shell: bash
+      run: |
+        BASE="${{ inputs.base-version }}"
+        IS_RELEASE="${{ inputs.is-release }}"
+        RUN_ID="${{ inputs.run-id }}"
+
+        if [ "$IS_RELEASE" = "true" ]; then
+          echo "version=$BASE" >> $GITHUB_OUTPUT
+          echo "npm_tag=latest" >> $GITHUB_OUTPUT
+          echo "is_dev=false" >> $GITHUB_OUTPUT
+          echo "📦 Production release: $BASE (tag: latest)"
+        else
+          # Bump patch and append -dev.{run_id}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+          DEV_PATCH=$((PATCH + 1))
+          DEV_VERSION="${MAJOR}.${MINOR}.${DEV_PATCH}-dev.${RUN_ID}"
+          echo "version=$DEV_VERSION" >> $GITHUB_OUTPUT
+          echo "npm_tag=dev" >> $GITHUB_OUTPUT
+          echo "is_dev=true" >> $GITHUB_OUTPUT
+          echo "🔧 Dev release: $DEV_VERSION (tag: dev)"
+        fi

@@ -1,0 +1,12 @@
+# Rust workspace manifest
+# CUSTOMIZE: Update workspace members to match your crate structure
+
+[workspace]
+resolver = "2"
+members = [
+  "crates/*",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
