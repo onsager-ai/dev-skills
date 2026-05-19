@@ -1,0 +1,26 @@
+{
+  "name": "dev-skills",
+  "version": "0.1.0",
+  "description": "Cross-repo engineering-methodology skills shared across onsager-ai and codervisor projects.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onsager-ai/dev-skills.git"
+  },
+  "homepage": "https://github.com/onsager-ai/dev-skills",
+  "bugs": {
+    "url": "https://github.com/onsager-ai/dev-skills/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skills",
+    "dev-process",
+    "engineering-methodology"
+  ],
+  "files": [
+    "skills",
+    "README.md",
+    "LICENSE"
+  ]
+}
