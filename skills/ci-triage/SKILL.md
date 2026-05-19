@@ -1,6 +1,6 @@
 ---
 name: ci-triage
-description: Triage failed CI runs on the Onsager repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with `onsager-pr-lifecycle` (PR-side CI triage) and the `web-testing` skill (invoked for `e2e` failures).
+description: Triage failed CI runs on a GitHub-Actions–driven repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with the consumer repo's `<repo>-pr-lifecycle` skill (PR-side CI triage) and the `web-testing` skill (invoked for `e2e` failures).
 ---
 
 # ci-triage
@@ -8,11 +8,13 @@ description: Triage failed CI runs on the Onsager repo — classify regression v
 Shared logic for classifying a failed CI workflow run and recording the
 outcome. Used by humans (or Claude in an interactive session) when
 triaging a red `main` workflow or a red check on an open PR — the latter
-via `onsager-pr-lifecycle`.
+via the consumer repo's `<repo>-pr-lifecycle` skill (e.g.
+`onsager-pr-lifecycle`, `lean-spec-pr-lifecycle`, `duhem-pr-lifecycle`).
 
 This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and
-the issue template. Workflow-specific reproduction steps live in other skills
-(`onsager-pr-lifecycle` for rust/frontend detail, `web-testing` for e2e).
+the issue template. Workflow-specific reproduction steps live in the
+consumer repo's `<repo>-pr-lifecycle` skill (for build-tool-specific
+detail) and in `web-testing` (for e2e).
 
 ## Taxonomy
 
@@ -92,9 +94,9 @@ Keep the excerpt tight. Dumping the full log helps nobody.
 
 ## Reproducing locally
 
-A human invoking this skill via `onsager-pr-lifecycle` should reproduce
-before filing, using the commands in
-[`onsager-pr-lifecycle`'s CI triage section](../onsager-pr-lifecycle/SKILL.md).
+A human invoking this skill via the consumer repo's
+`<repo>-pr-lifecycle` skill should reproduce before filing, using the
+commands in that skill's CI-triage section.
 For a `main` failure caught from outside a PR, check out `main` at the
 suspect SHA and run the same commands locally before filing.
 
@@ -134,11 +136,13 @@ prior commit; a real flake can mention a touched file by coincidence.
 - Never @-mention for `infra` or `flake` buckets — alert fatigue kills the
   signal.
 - Never close a `main-red` issue without a green run id to cite.
-- Scope is `onsager-ai/onsager` only.
+- Scope: any GitHub-Actions–driven repo. The taxonomy and rolling
+  `main-red` pattern are repo-agnostic; the consumer repo's CLAUDE.md
+  can override triggers and label conventions.
 
 ## Relationship to other surfaces
 
 | Surface | Role |
 |---------|------|
-| [`onsager-pr-lifecycle`](../onsager-pr-lifecycle/SKILL.md) | Interactive caller; humans use this when triaging a red PR check. |
+| `<repo>-pr-lifecycle` (consumer-repo skill, e.g. `onsager-pr-lifecycle`) | Interactive caller; humans use this when triaging a red PR check. |
 | [`web-testing`](../web-testing/SKILL.md) | Delegated to for `e2e` workflow classification. |

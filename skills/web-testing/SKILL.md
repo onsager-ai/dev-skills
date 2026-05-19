@@ -1,15 +1,21 @@
 ---
 name: web-testing
-description: L2 AI-driven web UI testing for Onsager Dashboard. Use when testing UI on PRs, triaging L1 test failures, or verifying UI behavior at desktop + mobile viewports. Triggers include "test the UI", "check the dashboard", "triage L1 failure", "run L2 tests", "validate this PR", "exploratory test the web app".
+description: L2 AI-driven web UI testing for a React/Vite dashboard app. Originally authored against the Onsager Dashboard (the body's route table + file paths are Onsager-shaped); other React dashboards fork the procedure and substitute their own routes / test paths. Use when testing UI on PRs, triaging L1 test failures, or verifying UI behavior at desktop + mobile viewports. Triggers include "test the UI", "check the dashboard", "triage L1 failure", "run L2 tests", "validate this PR", "exploratory test the web app".
 ---
 
 # Web Testing Protocol (L2)
 
-Exploratory, AI-driven validation of Onsager Dashboard UI changes — **not**
-regression testing. Regression coverage is L1's job
-(`apps/dashboard/tests/smoke/` + `apps/dashboard/tests/e2e/`). L2 catches
-things L1 misses: layout bugs, mobile regressions, interaction flows that
-only fail in a real browser.
+Exploratory, AI-driven validation of dashboard UI changes — **not**
+regression testing. Regression coverage is L1's job (smoke + e2e suites
+under the dashboard's test directories). L2 catches things L1 misses:
+layout bugs, mobile regressions, interaction flows that only fail in a
+real browser.
+
+> **Adopting in another repo:** the procedure (read diff → map to routes
+> → run agent-browser at two viewports → screenshot → verdict) is
+> repo-agnostic. The route table, test paths, and verdict schema below
+> are *examples* from `onsager-ai/onsager`. Fork the skill and replace
+> those concrete bits for your own dashboard.
 
 ## When to invoke
 

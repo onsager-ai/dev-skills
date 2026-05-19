@@ -137,7 +137,7 @@ chore(deps): upgrade pnpm to 10.6.2
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@git-commit -g -y
+npx skills add -g onsager-ai/dev-skills --skill git-commit -a claude-code -y
 ```
 
 Auto-activates when: user says "commit", "stage", "git add", or "commit message".

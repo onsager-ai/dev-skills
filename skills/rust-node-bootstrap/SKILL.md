@@ -99,13 +99,10 @@ After scaffolding, install skills for ongoing development:
 
 ```bash
 # CI/CD workflows and composite actions
-npx skills add codervisor/forge@rust-node-ci -g -y
+npx skills add -g onsager-ai/dev-skills --skill rust-node-ci -a claude-code -y
 
 # npm publishing pipeline and versioning
-npx skills add codervisor/forge@rust-npm-publish -g -y
-
-# Spec-driven development
-npx skills add codervisor/lean-spec@leanspec-sdd -g -y
+npx skills add -g onsager-ai/dev-skills --skill rust-npm-publish -a claude-code -y
 ```
 
 ## Templates
@@ -117,7 +114,7 @@ npx skills add codervisor/lean-spec@leanspec-sdd -g -y
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@rust-node-bootstrap -g -y
+npx skills add -g onsager-ai/dev-skills --skill rust-node-bootstrap -a claude-code -y
 ```
 
 Auto-activates when: user says "bootstrap", "scaffold", "new project", or "init" in a Rust+Node.js context.

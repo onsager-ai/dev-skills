@@ -122,7 +122,7 @@ The `--emoji` flag controls whether status emoji are emitted: `on` (default) sho
 
 **Invocation.** The renderer ships inside the skill. Use the path that matches how the skill was installed:
 
-- **Project-scope install** (default for `npx skills add onsager-ai/onsager-skills` from a repo root): `.claude/skills/plan-dag/scripts/plan-dag-render.py`
+- **Project-scope install** (default for `npx skills add onsager-ai/dev-skills` from a repo root): `.claude/skills/plan-dag/scripts/plan-dag-render.py`
 - **User-global install** (`npx skills add -g …`): `~/.claude/skills/plan-dag/scripts/plan-dag-render.py`
 
 Pick whichever exists. If unsure, `test -x .claude/skills/plan-dag/scripts/plan-dag-render.py && echo project || echo global`.

@@ -196,7 +196,7 @@ See [references/troubleshooting.md](./references/troubleshooting.md) for detaile
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@rust-node-ci -g -y
+npx skills add -g onsager-ai/dev-skills --skill rust-node-ci -a claude-code -y
 ```
 
 Auto-activates when: `.github/workflows/` directory exists in a Rust+Node.js repo, or user mentions "CI", "workflow", "GitHub Actions", "cross-build".

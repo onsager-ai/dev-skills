@@ -209,7 +209,7 @@ See [references/troubleshooting.md](./references/troubleshooting.md) for detaile
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@rust-npm-publish -g -y
+npx skills add -g onsager-ai/dev-skills --skill rust-npm-publish -a claude-code -y
 ```
 
 Auto-activates when: `publish.config.ts` present, scripts matching `*publish*` or `*platform*` exist, user mentions "publish", "platform packages", or "version sync".

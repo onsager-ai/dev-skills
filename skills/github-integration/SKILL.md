@@ -192,7 +192,7 @@ gh api repos/owner/repo/actions/runs
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@github-integration -g -y
+npx skills add -g onsager-ai/dev-skills --skill github-integration -a claude-code -y
 ```
 
 Auto-activates when: user mentions "gh in cloud", "github integration",

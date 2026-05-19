@@ -184,7 +184,7 @@ Read these when you need more depth:
 ## Setup & Activation
 
 ```bash
-npx skills add codervisor/forge@parallel-worktrees -g -y
+npx skills add -g onsager-ai/dev-skills --skill parallel-worktrees -a claude-code -y
 ```
 
 Auto-activates when: user mentions "worktree", "parallel agents", "multiple
