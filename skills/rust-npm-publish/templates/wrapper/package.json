@@ -1,0 +1,17 @@
+{
+  "name": "{{SCOPE}}/{{PACKAGE_NAME}}",
+  "version": "0.0.1",
+  "description": "{{DESCRIPTION}}",
+  "license": "MIT",
+  "bin": {
+    "{{BINARY_NAME}}": "bin.js"
+  },
+  "files": [
+    "bin.js"
+  ],
+  "optionalDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "{{REPOSITORY_URL}}"
+  }
+}
