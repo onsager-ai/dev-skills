@@ -74,7 +74,7 @@ Each node gets exactly one status:
 | State | Definition |
 |-------|------------|
 | `done` | Closed + `state_reason: completed`, or merged PR. |
-| `in_progress` | Open with an open PR linking to it. |
+| `in_progress` | Has an open PR linking to it (whether the issue itself is open or closed-but-not-completed). |
 | `open` | Open, no PR. |
 
 Don't render "blocked" as a separate status — the renderer derives it from the graph (any `open` node with a non-done predecessor) and styles it with a dashed muted fill. Conversely, an `open` node whose predecessors are all `done` is dual-encoded as the "available next" highlight.
