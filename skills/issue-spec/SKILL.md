@@ -19,7 +19,7 @@ When in doubt about the target repo, run `git remote -v` and read the repo's `CL
 
 lean-spec uses Markdown files with YAML frontmatter for metadata. We replace that entirely with GitHub issues because:
 
-- **Status** → Issue state (open/closed) + status labels (`draft`, `planned`, `in-progress`)
+- **Status** → Issue state (open/closed)
 - **Priority** → Labels (`priority:critical`, `priority:high`, `priority:medium`, `priority:low`)
 - **Tags** → Labels (`area:<subsystem>`, `feat`, `fix`, `refactor`, `perf`)
 - **Dependencies** → Issue references (`depends on #42`) and sub-issues
@@ -35,7 +35,7 @@ Three principles from lean-spec, universal across consumer repos:
 
 1. **Context Economy** — Keep issue body under ~2000 tokens. Larger features split into parent + child issues. Small specs produce better AI output and better human review.
 2. **Intent Over Implementation** — Document the *why* and *what*, not the *how*. Implementation details belong in PRs, not spec issues. The spec captures human intent that isn't in the code.
-3. **Living Documents** — Specs evolve via issue comments and edits. Status labels track lifecycle. The issue thread becomes the decision record.
+3. **Living Documents** — Specs evolve via issue comments and edits. The issue's open/closed state tracks lifecycle; the comment thread becomes the decision record.
 
 Each consumer repo may add 1–2 repo-specific principles on top — read the repo's `CLAUDE.md` and its `*-dev-process` sister skill before drafting. Examples of overlay principles you'll find in the wild:
 
@@ -188,7 +188,6 @@ Create the issue using `mcp__github__issue_write` against the consumer repo:
 - Type: `feat`, `fix`, `refactor`, `perf`
 - Area (consumer-repo taxonomy)
 - Priority: `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
-- Status: `draft` (initial state)
 - Any consumer-repo cross-cutting labels (e.g. `provider-impact`, `schema-impact`, `i18n`) when the corresponding overlay section is non-empty
 
 **Sub-issues**: If this is a child of a parent spec, link it using `mcp__github__sub_issue_write`.
@@ -200,20 +199,18 @@ Create the issue using `mcp__github__issue_write` against the consumer repo:
 - Any open questions that need human decisions
 - Sub-issue links if the spec was split
 
-## Status Lifecycle via Labels
+## Status Lifecycle
 
-GitHub issue state (open/closed) combined with status labels:
+GitHub issue state alone tracks lifecycle:
 
 ```
-open + draft  →  open + planned  →  open + in-progress  →  closed (complete)
+open  →  closed
 ```
 
-- **draft**: Spec created, open questions may remain. AI wrote it, human hasn't reviewed.
-- **planned**: Human reviewed, decisions made, ready for implementation. Remove `draft`, add `planned`.
-- **in-progress**: Someone/something is actively working (PR opened). Remove `planned`, add `in-progress`. Some consumer repos automate this transition via a `pr-spec-sync.yml` GitHub Actions workflow; others handle it manually — check the repo's `*-pr-lifecycle` sister skill.
+- **open**: Spec exists, work may be in flight. Open questions, if any, are resolved in the issue thread.
 - **closed**: All plan items done, tests passing. PR merge with `Closes #N` closes it automatically.
 
-**Key rule**: `draft → planned` is the human-AI alignment gate. A spec moves to `planned` only after a human reviews it and resolves open questions. The AI does not flip this label unprompted.
+No status labels are applied — the issue's open/closed state plus the comment thread is the audit trail. PRs cross-link via `Closes #N` / `Part of #N` in the PR body; the repo's `*-pr-lifecycle` sister skill covers how Plan checkboxes get ticked as `Part of` PRs land.
 
 ## Spec Relationships via Sub-Issues
 
@@ -242,7 +239,6 @@ When a contract under a repo's architectural rule splits work across two subsyst
 
 - **Small is better.** A 500-token spec that captures intent clearly beats a 3000-token spec that tries to cover everything. Split into sub-issues early.
 - **Discover first.** Always search existing issues before creating. Duplicate specs create confusion.
-- **Status labels reflect reality.** Don't label `planned` if decisions are still open. Don't label `in-progress` until a PR is open.
 - **One concern per issue.** If a spec covers two independent changes, split into sub-issues with a shared parent.
 - **Reference code, not concepts.** Point to actual types, functions, files — not abstract ideas. Use concrete paths like `crates/<sub>/src/...` or `packages/<pkg>/src/...` rather than "the foo module."
 - **Open questions are alignment points.** These are where AI must stop and ask a human. Make them explicit, specific, and include the impact of each decision.
@@ -251,13 +247,13 @@ When a contract under a repo's architectural rule splits work across two subsyst
 
 ## Handoff to implementation
 
-Once a spec moves to `planned`:
+Once the spec is ready to implement:
 
 1. Create a branch referencing the issue: `claude/spec-<N>-<slug>` (Claude-owned) or any name (human-owned).
 2. Follow the SDD loop in the repo's `*-dev-process` sister skill.
 3. Pre-push via the repo's `*-pre-push` sister skill (which typically includes a spec-link check plus the repo's typecheck / lint / test gates).
 4. PR body must include `Closes #N` (slice complete) or `Part of #N` (scaffolding).
-5. On PR open, the repo's `pr-spec-sync` workflow (if present) flips the issue to `in-progress`; on merge GitHub auto-closes `Closes #N` issues and the merger ticks Plan items on `Part of #N` parents manually. See `*-pr-lifecycle`.
+5. On merge GitHub auto-closes `Closes #N` issues; the merger ticks Plan items on `Part of #N` parents manually. See `*-pr-lifecycle`.
 
 ## Repo-agnostic by construction; consumer overlay is required
 

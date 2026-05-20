@@ -1,6 +1,6 @@
 <!-- Issue body template for lean-spec style spec issues -->
 <!-- Title: spec(<area>): <short description> -->
-<!-- Labels: spec, <type>, area:<area>, priority:<level>, draft -->
+<!-- Labels: spec, <type>, area:<area>, priority:<level> -->
 <!-- Consumer-repo overlay labels (apply when relevant): provider-impact, schema-impact, i18n -->
 
 ## Overview
@@ -36,7 +36,7 @@
 - [ ] <!-- Concrete task tied to plan items above -->
 
 ### Open questions
-<!-- Remove this subsection if none. Questions block draft → planned. -->
+<!-- Remove this subsection if none. Questions block implementation. -->
 
 > <!-- Question with enough context to answer -->
 > Impact: <!-- Which plan items are affected -->

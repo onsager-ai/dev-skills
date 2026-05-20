@@ -10,7 +10,7 @@ No YAML frontmatter — all metadata lives in native GitHub features:
 
 | lean-spec field    | GitHub equivalent     | Example                                      |
 |--------------------|-----------------------|----------------------------------------------|
-| `status`           | Labels                | `draft`, `planned`, `in-progress`            |
+| `status`           | Issue state           | `open` / `closed`                            |
 | `priority`         | Labels                | `priority:high`                              |
 | `tags`             | Labels                | `area:<subsystem>`, `feat`                   |
 | `depends_on`       | Issue body reference  | `depends on #42`                             |
@@ -45,12 +45,6 @@ Drawn from the consumer repo's area taxonomy — read the repo's `*-dev-process`
 - `priority:medium` — default
 - `priority:low` — nice to have
 
-**Status** (pick one, update as lifecycle progresses):
-
-- `draft` — initial state, AI-generated, human review pending
-- `planned` — human reviewed, decisions made, ready for implementation
-- `in-progress` — actively being worked on (PR open)
-
 **Cross-cutting (consumer-repo overlay):**
 
 Some consumer repos define additional discoverability labels for cross-cutting concerns — e.g. `provider-impact` for specs that touch a provider seam, `schema-impact` for schema changes, `i18n` for user-visible string changes, `trivial` (PR-only) for specs-not-required. Apply the ones that exist in the target repo; the repo's CLAUDE.md / sister skill is authoritative.
@@ -58,18 +52,10 @@ Some consumer repos define additional discoverability labels for cross-cutting c
 ### Status Lifecycle
 
 ```
-open + draft  →  open + planned  →  open + in-progress  →  closed
+open  →  closed
 ```
 
-The `draft → planned` transition is the **human-AI alignment gate**. Only a human moves a spec to `planned` — this confirms:
-
-- Open questions are resolved
-- Design approach is approved
-- Scope and priority are accepted
-
-`planned → in-progress` happens **automatically** on PR open in repos that ship a `pr-spec-sync.yml` workflow, and **manually** in repos that don't. Check the repo's `*-pr-lifecycle` sister skill.
-
-`in-progress → closed` happens automatically on PR merge with a `Closes #N` keyword. `Part of #N` PRs don't close the parent; the merger ticks the parent's Plan checkboxes manually.
+`open → closed` happens automatically on PR merge with a `Closes #N` keyword. `Part of #N` PRs don't close the parent; the merger ticks the parent's Plan checkboxes manually.
 
 ## Sections
 
@@ -201,7 +187,7 @@ The timeout duration is server-configurable via environment variable. Per-sessio
 
 - Every Plan item maps to exactly one of: "Human decides" or "AI implements."
 - Human items are decisions/tradeoffs. AI items are execution.
-- Open questions block implementation — they must be resolved (via issue comments) before the `draft → planned` label transition.
+- Open questions block implementation — they must be resolved (via issue comments) before the PR opens.
 - Once a human answers a question in a comment, update the Alignment section and record the decision.
 
 ### Notes
