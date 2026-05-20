@@ -52,7 +52,7 @@ Resolve the scope from the conversation, not from a generic crawl. Typical trigg
 
 **Don't stop at the issue body / labels.** A node's real status often lives in the comment thread or in a PR that hasn't been linked back yet. For each node, gather all of the following before classifying:
 
-- **Issue itself**: state (`open` / `closed`), `state_reason` (`completed` vs other), status labels (`in-progress`, `planned`, `draft`), `priority:*`, sub-issue list (umbrella nodes only).
+- **Issue itself**: state (`open` / `closed`), `state_reason` (`completed` vs other), `priority:*`, sub-issue list (umbrella nodes only).
 - **Issue comments** (`mcp__github__issue_read` with `method: get_comments`): late status flips ("actually superseded by #N", "merged via #M, closing"), new `Depends on` / `Blocks` lines added after the body was written, and reviewer pushback that turns a "ready" issue back into "open question".
 - **Linked PRs**: every PR that mentions the issue, not just one the body names. Find them with `mcp__github__search_pull_requests` (e.g. `#N in:body,comments` scoped to the repo) or `mcp__github__list_pull_requests` when the umbrella has a stable branch prefix. For each PR: state (`open` / `merged` / `closed-unmerged`), draft flag, mergeable state from `method: get_status` / `get_check_runs`, and **PR comments + reviews** (`mcp__github__pull_request_read` with `method: get_comments`, `get_reviews`, and `get_review_comments` for inline threads) — a PR with "needs rework, blocked on #X" in review comments is not in-progress in the sense the DAG wants.
 - **Recent commits** referencing the issue (`mcp__github__list_commits` on the default branch, optionally narrowed by `since` / `path`). A merged commit with `Closes #N` / `Fixes #N` in its message means done even if the issue is still open due to a bot race.
@@ -74,8 +74,8 @@ Each node gets exactly one status:
 | State | Definition |
 |-------|------------|
 | `done` | Closed + `state_reason: completed`, or merged PR. |
-| `in_progress` | Open + `in-progress` label, or an open PR exists for it. |
-| `open` | Open + `planned` / `draft`, no PR. |
+| `in_progress` | Open with an open PR linking to it. |
+| `open` | Open, no PR. |
 
 Don't render "blocked" as a separate status — the renderer derives it from the graph (any `open` node with a non-done predecessor) and styles it with a dashed muted fill. Conversely, an `open` node whose predecessors are all `done` is dual-encoded as the "available next" highlight.
 
@@ -189,4 +189,4 @@ Requires `dot` (graphviz) on PATH; the PNG smoke additionally requires `node` + 
 
 - The repo's spec-driven-development loop skill (e.g. `onsager-dev-process`, `duhem-dev-process`) — the parent / child / depends-on semantics the DAG visualizes.
 - The repo's `issue-spec` skill — how parent / child / depends-on edges are persisted on GitHub.
-- The repo's PR-lifecycle skill — how "in-progress" status flips on PR open / merge, which drives the amber fill on the rendered PNG.
+- The repo's PR-lifecycle skill — how PR open / merge drives the amber fill (open PR) and green fill (merged) on the rendered PNG.
