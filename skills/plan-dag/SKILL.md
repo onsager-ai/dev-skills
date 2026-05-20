@@ -1,7 +1,7 @@
 ---
 name: plan-dag
 description: Render the current plan as a high-DPI PNG dependency DAG — nodes are issues / sub-issues / PRs, edges come from sub-issue links plus dependency-language prose ("Depends on", "Part of", "Blocks", "Closes") and PR / commit cross-references, and every node is color-coded done / in-progress / available-next / blocked so sequencing and critical path are obvious at a glance. Use when asked "plan as dag", "draw a dag", "dag diagram", "show the dependency graph", "what's blocking what", "what's the critical path", "what can be parallelized", "what's left for #N", or right after a `what's next` survey when sequencing the next pick is the actual question.
-allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git branch:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), mcp__github__issue_read, mcp__github__list_issues, mcp__github__search_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git branch:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.py:*), Bash(.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), Bash(~/.claude/skills/plan-dag/scripts/plan-dag-render.test.sh:*), mcp__github__issue_read, mcp__github__list_issues, mcp__github__search_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read, mcp__github__search_pull_requests, mcp__github__list_commits
 ---
 
 # plan-dag
@@ -48,14 +48,24 @@ Resolve the scope from the conversation, not from a generic crawl. Typical trigg
 
 - An umbrella spec → walk its sub-issue list (`mcp__github__issue_read` with `method: get_sub_issues`).
 - A track of follow-ups from a recent merge → use the priority + area filter the user implied.
-- The set of issues just surveyed → reuse that list verbatim, don't refetch.
+- The set of issues just surveyed → reuse that *list of node ids*, but **re-fetch each node's state** before rendering (see "Freshness" below). Stale labels are the most common source of a wrong DAG.
 
-For each node, capture:
+**Don't stop at the issue body / labels.** A node's real status often lives in the comment thread or in a PR that hasn't been linked back yet. For each node, gather all of the following before classifying:
 
-- Issue state (`open` / `closed`) and `state_reason` (`completed` vs other).
-- Status labels (`in-progress`, `planned`, `draft`) and `priority:*`.
-- Linked PRs — look for "merged in PR #N" in the body or comments.
-- Sub-issue list (only for umbrella nodes).
+- **Issue itself**: state (`open` / `closed`), `state_reason` (`completed` vs other), status labels (`in-progress`, `planned`, `draft`), `priority:*`, sub-issue list (umbrella nodes only).
+- **Issue comments** (`mcp__github__issue_read` with `method: get_comments`): late status flips ("actually superseded by #N", "merged via #M, closing"), new `Depends on` / `Blocks` lines added after the body was written, and reviewer pushback that turns a "ready" issue back into "open question".
+- **Linked PRs**: every PR that mentions the issue, not just one the body names. Find them with `mcp__github__search_pull_requests` (e.g. `#N in:body,comments` scoped to the repo) or `mcp__github__list_pull_requests` when the umbrella has a stable branch prefix. For each PR: state (`open` / `merged` / `closed-unmerged`), draft flag, mergeable state from `method: get_status` / `get_check_runs`, and **PR comments + reviews** (`mcp__github__pull_request_read` with `method: get_comments`, `get_reviews`, and `get_review_comments` for inline threads) — a PR with "needs rework, blocked on #X" in review comments is not in-progress in the sense the DAG wants.
+- **Recent commits** referencing the issue (`mcp__github__list_commits` on the default branch, optionally narrowed by `since` / `path`). A merged commit with `Closes #N` / `Fixes #N` in its message means done even if the issue is still open due to a bot race.
+
+Do not infer status from any single signal. Reconcile: a closed-but-not-completed issue with an open follow-up PR is `in_progress`, not `done`; an open issue whose Closes-PR has merged is `done` pending bot cleanup.
+
+**Freshness.** GitHub state moves while you work. Every render — including a re-render five minutes after the last one — must re-fetch:
+
+- The full node set's current state (don't cache `done` / `in_progress` across renders in the same session).
+- Every PR's current state and review status (a PR can land or be force-closed between renders).
+- The latest comments on any node whose status looked ambiguous last time.
+
+If the user asks "re-render with X" or "refresh that DAG", treat it as a full re-discovery, not a relabel. The cost of one extra round of MCP reads is far less than the cost of shipping a DAG that says "next pick: #305" when #305 merged ten minutes ago.
 
 ### 2. Classify
 
@@ -74,8 +84,8 @@ Don't render "blocked" as a separate status — the renderer derives it from the
 Edges come from three sources, in this order of trust. **Don't draw an edge you can't cite from one of these** — speculation pollutes the DAG.
 
 1. **Sub-issue links** (`mcp__github__issue_read` + `method: get_sub_issues`). Edge direction is **child → parent** (prerequisite → dependent) — the parent closes when its children close, so the DAG flows toward closure.
-2. **Explicit prose** in issue body: `Depends on #N`, `Hard depends on #N`, `Blocks #N`, `Part of #N`, `Closes #N`.
-3. **PR/commit references**: `merged in PR #N`, `closed by #N`, `PR-A → PR-B` ordering inside an umbrella spec's Plan.
+2. **Explicit prose** in issue body **or comment thread**: `Depends on #N`, `Hard depends on #N`, `Blocks #N`, `Part of #N`, `Closes #N`. Scan comments too — dependencies added after the issue was filed live there, not in the body.
+3. **PR/commit references**: `merged in PR #N`, `closed by #N`, `PR-A → PR-B` ordering inside an umbrella spec's Plan, plus `Closes #N` / `Fixes #N` trailers in commit messages and PR descriptions/reviews.
 
 If a dependency is "obvious to me but uncited", the node label can hint at it; the edge stays out.
 
@@ -151,7 +161,9 @@ If the renderer aborts with `IR validation failed`, fix the IR — do not work a
 
 ## Conventions
 
-- **No invented edges.** If you can't cite the source (sub-issue link, body prose, PR header), don't draw it.
+- **No invented edges.** If you can't cite the source (sub-issue link, body or comment prose, PR header, commit trailer), don't draw it.
+- **Re-fetch before re-rendering.** Node state, PR state, and recent comments must be re-read on every render — never reuse a prior render's classification. A DAG that recommends a node which already merged is worse than no DAG.
+- **Read past the issue body.** Comments on the issue, comments and reviews on linked PRs, and recent commit trailers routinely flip status or add dependencies that the body doesn't mention. Skipping them produces a confidently wrong graph.
 - **Summarize done nodes when dense.** More than ~3 done nodes in a track? Collapse to `Landed: #A #B #C ✓` in prose rather than enumerating them in the graph.
 - **One DAG per response.** Don't render the same plan twice under different framings — pick the framing that answers the question that was actually asked.
 - **End with the picked path.** A DAG without a recommended sequence is a wall of boxes. Close with the critical path and the next pickable node in prose, framed so the user can redirect.
