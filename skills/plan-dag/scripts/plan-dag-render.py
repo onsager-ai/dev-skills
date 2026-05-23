@@ -21,6 +21,14 @@ VALID_STATUS = set(STATUS_MARKER.keys())
 VALID_SOURCES = {"sub-issue", "depends-on", "pr-link", "closes", "part-of"}
 FORBIDDEN_LABEL_CHARS = ('"', "\\", "[", "]", "\n", "\r")
 
+# Greedy word-wrap threshold for node labels (visual columns). Long labels
+# stretch nodes horizontally, which compounds across wide peer rows; wrapping
+# keeps per-node width bounded so the overall PNG stays narrow enough to read
+# inline. 22 is chosen so the boundary-case test label "#288 MCP (see #500) ✓"
+# (21 chars) stays on one line while real GitHub titles like "Workflows chips
+# + DraftStrip" wrap.
+WRAP_AT = 22
+
 # Visual vocabulary. Fills encode status; an additional "available next"
 # highlight is computed from the graph (open + all preds done).
 _STYLE_DONE = {"fillcolor": "#d4edda", "color": "#52a566"}
@@ -45,6 +53,24 @@ _EMOJI = {
 
 def _dot_escape(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _wrap_label(text, width=WRAP_AT):
+    """Greedy word-wrap on spaces. Returns a DOT-escaped \\n-joined string."""
+    if len(text) <= width:
+        return text
+    lines, cur = [], ""
+    for w in text.split(" "):
+        if not cur:
+            cur = w
+        elif len(cur) + 1 + len(w) <= width:
+            cur = cur + " " + w
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return "\\n".join(lines)
 
 
 def validate(ir):
@@ -216,10 +242,18 @@ def render_dot(ir, emoji=True):
     emoji=False: append the legacy `✓` / `…` marker instead. Use when the
         target system lacks a color emoji font.
     """
+    # rankdir=LR: most chat surfaces are wider than tall, so a left-to-right
+    # flow with close on the right wraps less and reads more naturally than
+    # the original TB layout when peer rows are wide.
+    # concentrate=true bundles parallel edges that share a target (umbrella
+    # nodes attract many sub-issues).
     lines = [
         "digraph plan {",
-        "  rankdir=TB;",
+        "  rankdir=LR;",
         '  bgcolor="white";',
+        "  nodesep=0.25;",
+        "  ranksep=0.55;",
+        "  concentrate=true;",
         '  node [shape=box, style="filled,rounded", fontname="Helvetica", '
         'fontsize=12, penwidth=1.2, color="#495057", fillcolor="#ffffff"];',
         '  edge [color="#6c757d", penwidth=1.0, arrowsize=0.8];',
@@ -243,7 +277,7 @@ def render_dot(ir, emoji=True):
             label_text = f'{_EMOJI[em_key]}  #{nid} {n["label"]}'
         else:
             label_text = f'#{nid} {n["label"]}{STATUS_MARKER[status]}'
-        label = _dot_escape(label_text)
+        label = _wrap_label(_dot_escape(label_text))
         lines.append(
             f'  "{_dot_escape(nid)}" [label="{label}", {_attrs_str(attrs)}];'
         )
@@ -253,7 +287,7 @@ def render_dot(ir, emoji=True):
             f'{_EMOJI["close"]}  close #{ir["close"]}'
             if emoji else f'close #{ir["close"]}'
         )
-        close_label = _dot_escape(close_text)
+        close_label = _wrap_label(_dot_escape(close_text))
         lines.append(
             f'  "close" [label="{close_label}", {_attrs_str(_STYLE_CLOSE)}];'
         )
@@ -265,13 +299,31 @@ def render_dot(ir, emoji=True):
 
 
 def _dot_to_svg(ir, emoji=True):
-    """Run `dot -Tsvg` on the styled DOT for this IR. Returns SVG source."""
+    """Run `dot -Tsvg` on the styled DOT for this IR. Returns SVG source.
+
+    Pipes through `unflatten` first when available — it staggers wide peer
+    rows into a more balanced tree, which keeps the rendered PNG from
+    blowing out horizontally on graphs where many sub-issues sit at the
+    same rank. `unflatten` ships with graphviz, so a successful `dot`
+    discovery normally implies it; we still degrade gracefully if it's
+    missing or errors.
+    """
     if shutil.which("dot") is None:
         sys.exit(
             "plan-dag-render requires `dot` (graphviz) on PATH. "
             "Install: apt install graphviz, or brew install graphviz."
         )
     dot_src = render_dot(ir, emoji=emoji)
+    if shutil.which("unflatten") is not None:
+        try:
+            unflat = subprocess.run(
+                ["unflatten", "-l", "4", "-c", "3"], input=dot_src,
+                capture_output=True, text=True, timeout=10, encoding="utf-8",
+            )
+            if unflat.returncode == 0 and unflat.stdout.strip():
+                dot_src = unflat.stdout
+        except subprocess.TimeoutExpired:
+            pass
     try:
         svg_res = subprocess.run(
             ["dot", "-Tsvg"], input=dot_src,
