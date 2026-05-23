@@ -126,6 +126,13 @@ Emit a JSON IR matching the schema below, then invoke the renderer. **Do not han
 | Open + blocked | near-white | grey, dashed | ⬜ |
 | Close sentinel | white | double | 🏁 |
 
+**Edges encode ship-order, not structure.** Edges split into two visual tiers:
+
+- **Ordering edges** (`depends-on`, `closes`, `pr-link`) are status-colored by their *source* node — green leaves done work, amber leaves in-progress, blue leaves "available next", grey leaves blocked. The same palette as node borders, so the wave of progress reads from one mental model.
+- **Membership edges** (`sub-issue`, `part-of`) are drawn as faint thin grey scaffolding. They're not real ship-order constraints — `#A` doesn't have to ship before `#B` just because `#B` is `#A`'s sub-issue — so they're demoted visually. They stay drawn (not invisible) so the eye can still trace structure inside clusters.
+
+**Umbrellas cluster automatically.** A node becomes an umbrella anchor if at least one issue points to it via a formal `sub-issue` edge (the "opt-in" gate) AND it accumulates ≥3 incoming `sub-issue` OR `part-of` references (so trivial 2-node groupings don't form). Anchors render with a folder-tab shape; their members render inside a faint dashed cluster box. Nodes that feed multiple umbrellas (shared work) stay at the top level.
+
 The "available next" highlight is computed from the graph (open + every predecessor is `done`) — no IR field for it. Critical-path edges are *not* bolded: which path is "the" critical path is a caller judgement, and elevating it visually would conflate the recommendation with the graph's topology. Keep the critical path in `ir.critical_path` and let prose carry the next-pick recommendation under the rendered PNG.
 
 The `--emoji` flag controls whether status emoji are emitted: `on` (default) shows ✅ / 🟡 / 🎯 / ⬜ / 🏁 emoji; `off` falls back to trailing ✓ / … text markers. Turn `off` if the target system lacks a color emoji font and the PNG shows tofu boxes.

@@ -42,6 +42,40 @@ _STYLE_OPEN_AVAILABLE = {
 }
 _STYLE_CLOSE = {"peripheries": "2", "fillcolor": "#ffffff", "color": "#495057"}
 
+# Edge palette by source node's effective status — matches node border
+# colors so reading the graph is one mental model. Green/amber/blue/grey
+# trace the wave of work: done → in-progress → ready → blocked.
+_EDGE_BY_STATUS = {
+    "done":           "#52a566",
+    "in_progress":    "#d39e00",
+    "open_available": "#0d6efd",
+    "open_blocked":   "#adb5bd",
+}
+
+# Membership edges (sub-issue, part-of) don't represent ship-order
+# constraints — they're just organizational containment. Drawn faint
+# so the colored ordering edges (depends-on, closes, pr-link) carry the
+# "what ships first?" story. Kept visible (not invisible) because
+# stripping them leaves the inside of clusters looking empty and breaks
+# the eye's structural reading of the graph.
+_MEMBERSHIP_SOURCES = {"sub-issue", "part-of"}
+_MEMBERSHIP_EDGE_ATTRS = {
+    "color": "#dee2e6",
+    "penwidth": "0.6",
+    "arrowsize": "0.5",
+}
+
+# Cluster framing for umbrellas.
+_CLUSTER_STYLE = {
+    "style":      "rounded,dashed",
+    "color":      "#ced4da",
+    "bgcolor":    "#fafbfc",
+    "fontcolor":  "#6c757d",
+    "fontsize":   "11",
+    "labeljust":  "l",
+    "margin":     "12",
+}
+
 _EMOJI = {
     "done": "✅",
     "in_progress": "🟡",
@@ -235,6 +269,74 @@ def _attrs_str(attrs):
     return ", ".join(f'{k}="{v}"' for k, v in attrs.items())
 
 
+def cluster_membership(ir, min_members=3):
+    """Group nodes into umbrella clusters under a hybrid rule.
+
+    Anchor gate (strict): a node qualifies as a candidate cluster anchor
+        only if it has >=1 incoming `sub-issue` edge — somebody opted into
+        the formal GitHub parent/child relationship at least once. This
+        prevents an issue from accidentally becoming an umbrella just
+        because lots of prose mentions `Part of #N`.
+
+    Promotion: a candidate becomes a real anchor only when it accumulates
+        >= min_members potential feeders (counted across `sub-issue` OR
+        `part-of` incoming edges). Small intermediate parents — e.g. a
+        node with a single sub-issue child — stay out so they don't trap
+        shared nodes away from the real umbrella above them.
+
+    Member set (loose): for real anchors, members include any node
+        pointing in via `sub-issue` OR `part-of`. Shared nodes (feeding
+        >1 real anchor) stay at the top level.
+
+    Returns dict[anchor_id] -> ordered list [anchor_id, member_id, ...].
+    """
+    edges = ir.get("edges", [])
+
+    candidates = set()
+    for e in edges:
+        if e.get("source") == "sub-issue":
+            candidates.add(str(e["to"]))
+
+    potential = {a: set() for a in candidates}
+    for e in edges:
+        if e.get("source") in _MEMBERSHIP_SOURCES:
+            t = str(e["to"])
+            if t in candidates:
+                potential[t].add(str(e["from"]))
+
+    real = {a for a, mems in potential.items() if len(mems) >= min_members}
+
+    feeds = {}
+    for e in edges:
+        if e.get("source") in _MEMBERSHIP_SOURCES:
+            t = str(e["to"])
+            s = str(e["from"])
+            if t in real and s not in real:
+                feeds.setdefault(s, set()).add(t)
+
+    clusters = {a: [a] for a in real}
+    for nid, anchors in feeds.items():
+        if len(anchors) == 1:
+            clusters[next(iter(anchors))].append(nid)
+        # nodes feeding multiple real anchors stay at the top level
+
+    return clusters
+
+
+def _edge_color_for_source(from_id, status_by_id, available):
+    """Color an ordering edge by the *source* node's effective status."""
+    st = status_by_id.get(from_id, "open")
+    if st == "done":
+        key = "done"
+    elif st == "in_progress":
+        key = "in_progress"
+    elif from_id in available:
+        key = "open_available"
+    else:
+        key = "open_blocked"
+    return _EDGE_BY_STATUS[key]
+
+
 def render_dot(ir, emoji=True):
     """Emit styled DOT source for the SVG/PNG pipeline.
 
@@ -245,15 +347,12 @@ def render_dot(ir, emoji=True):
     # rankdir=LR: most chat surfaces are wider than tall, so a left-to-right
     # flow with close on the right wraps less and reads more naturally than
     # the original TB layout when peer rows are wide.
-    # concentrate=true bundles parallel edges that share a target (umbrella
-    # nodes attract many sub-issues).
     lines = [
         "digraph plan {",
         "  rankdir=LR;",
         '  bgcolor="white";',
         "  nodesep=0.25;",
         "  ranksep=0.55;",
-        "  concentrate=true;",
         '  node [shape=box, style="filled,rounded", fontname="Helvetica", '
         'fontsize=12, penwidth=1.2, color="#495057", fillcolor="#ffffff"];',
         '  edge [color="#6c757d", penwidth=1.0, arrowsize=0.8];',
@@ -261,26 +360,60 @@ def render_dot(ir, emoji=True):
     ]
 
     available = _available_next(ir)
+    status_by_id = {str(n["id"]): n.get("status", "open") for n in ir["nodes"]}
+    clusters = cluster_membership(ir)
+    real_anchors = set(clusters.keys())
+    in_some_cluster = {n for members in clusters.values() for n in members}
+    nodes_by_id = {str(n["id"]): n for n in ir["nodes"]}
 
-    for n in ir["nodes"]:
-        nid = str(n["id"])
+    def emit_node(nid):
+        n = nodes_by_id[nid]
         status = n.get("status", "open")
         if status == "done":
-            attrs, em_key = _STYLE_DONE, "done"
+            attrs, em_key = dict(_STYLE_DONE), "done"
         elif status == "in_progress":
-            attrs, em_key = _STYLE_IN_PROGRESS, "in_progress"
+            attrs, em_key = dict(_STYLE_IN_PROGRESS), "in_progress"
         elif nid in available:
-            attrs, em_key = _STYLE_OPEN_AVAILABLE, "open_available"
+            attrs, em_key = dict(_STYLE_OPEN_AVAILABLE), "open_available"
         else:
-            attrs, em_key = _STYLE_OPEN_BLOCKED, "open_blocked"
+            attrs, em_key = dict(_STYLE_OPEN_BLOCKED), "open_blocked"
+        # Umbrella anchors get the folder shape — a visual marker that this
+        # node is a container, without spending an emoji slot or extra
+        # label text. Drop `rounded` from the style so the folder tab
+        # renders cleanly.
+        if nid in real_anchors:
+            attrs["shape"] = "folder"
+            style = attrs.get("style", "filled,rounded")
+            attrs["style"] = ",".join(
+                p for p in style.split(",") if p != "rounded"
+            )
         if emoji:
             label_text = f'{_EMOJI[em_key]}  #{nid} {n["label"]}'
         else:
             label_text = f'#{nid} {n["label"]}{STATUS_MARKER[status]}'
         label = _wrap_label(_dot_escape(label_text))
-        lines.append(
-            f'  "{_dot_escape(nid)}" [label="{label}", {_attrs_str(attrs)}];'
-        )
+        return f'  "{_dot_escape(nid)}" [label="{label}", {_attrs_str(attrs)}];'
+
+    # Emit cluster subgraphs first. The cluster label is left empty — the
+    # anchor node inside already carries it, so repeating it as a header
+    # reads as redundant chrome.
+    for cid, members in clusters.items():
+        lines.append(f'  subgraph "cluster_{_dot_escape(cid)}" {{')
+        lines.append('    label="";')
+        for k, v in _CLUSTER_STYLE.items():
+            lines.append(f'    {k}="{v}";')
+        for nid in members:
+            lines.append("  " + emit_node(nid))
+        lines.append("  }")
+        lines.append("")
+
+    # Then top-level nodes — anything not pulled into a cluster, including
+    # nodes feeding multiple anchors (treated as "shared").
+    for n in ir["nodes"]:
+        nid = str(n["id"])
+        if nid in in_some_cluster:
+            continue
+        lines.append(emit_node(nid))
 
     if ir.get("close") is not None:
         close_text = (
@@ -292,8 +425,26 @@ def render_dot(ir, emoji=True):
             f'  "close" [label="{close_label}", {_attrs_str(_STYLE_CLOSE)}];'
         )
     lines.append("")
+
+    # Two-tier edges:
+    #  - Membership (sub-issue, part-of): faint thin grey. Visible enough
+    #    to trace structure inside clusters, quiet enough to recede.
+    #  - Ordering (depends-on, closes, pr-link): status-colored by the
+    #    source node. These carry the "what ships first?" story.
     for e in ir.get("edges", []):
-        lines.append(f'  "{_dot_escape(str(e["from"]))}" -> "{_dot_escape(str(e["to"]))}";')
+        src = str(e["from"])
+        dst = str(e["to"])
+        if e.get("source") in _MEMBERSHIP_SOURCES:
+            lines.append(
+                f'  "{_dot_escape(src)}" -> "{_dot_escape(dst)}" '
+                f'[{_attrs_str(_MEMBERSHIP_EDGE_ATTRS)}];'
+            )
+        else:
+            color = _edge_color_for_source(src, status_by_id, available)
+            lines.append(
+                f'  "{_dot_escape(src)}" -> "{_dot_escape(dst)}" '
+                f'[color="{color}"];'
+            )
     lines.append("}")
     return "\n".join(lines)
 

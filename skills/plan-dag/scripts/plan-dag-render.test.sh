@@ -142,13 +142,17 @@ else
         printf '  FAIL close sentinel missing peripheries="2"\n'
     fi
     # Critical-path edges stay unbolded — caller judgement, not topology.
-    crit_edges=$(grep -E '"[^"]+"\s*->\s*"[^"]+"\s*\[' "$tmp/happy.dot" | grep -c 'penwidth' || true)
-    if [ "$crit_edges" -eq 0 ]; then
+    # Membership edges legitimately use penwidth=0.6 (thinner) to demote
+    # them visually; that's the opposite of bolding. Flag only edges with
+    # penwidth >= 1.5 (the in-progress / available-next thickness band).
+    bolded_edges=$(grep -E '"[^"]+"\s*->\s*"[^"]+"\s*\[' "$tmp/happy.dot" \
+        | grep -cE 'penwidth\s*=\s*"?([1-9][0-9]*\.[5-9]|[2-9])' || true)
+    if [ "$bolded_edges" -eq 0 ]; then
         pass=$((pass + 1))
         printf '  ok  no critical-path edge bolding\n'
     else
         fail=$((fail + 1))
-        printf '  FAIL %d edges carry explicit penwidth (expected 0)\n' "$crit_edges"
+        printf '  FAIL %d edges carry bolding penwidth (expected 0)\n' "$bolded_edges"
     fi
 fi
 
