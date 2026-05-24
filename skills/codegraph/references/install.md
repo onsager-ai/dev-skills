@@ -59,9 +59,9 @@ Restart Claude Code. If you used the manual path, also add auto-allow to `~/.cla
 
 ## Claude Code Cloud session (ephemeral container)
 
-Cold-start cost unverified for any target repo. Run `spike.md` against the repo before integrating.
+Local spike against onsager / crawlab / leanspec on Node 22 measured **6–12s** for cold init+index (~13–19s including the one-shot `npx install`). Cloud cold-start has not been measured — npx cache state, IO speed, and CPU may differ. Run `spike.md` in a cloud session before integrating.
 
-If spike shows acceptable cold-start (rule of thumb: total < session length / 4):
+If the cloud spike confirms a similar range (rule of thumb: cold-start < session length / 4, which is trivially true at 15s):
 
 ```bash
 # At session start, or in a postCreate hook if cloud runtime supports it
@@ -96,3 +96,12 @@ codegraph status
 ```
 
 Expect: indexed file count > 0, no errors, last sync timestamp recent.
+
+## What `init` creates
+
+`codegraph init` writes `.codegraph/` at the repo root containing:
+
+- `codegraph.db` — the SQLite knowledge graph
+- `.gitignore` — auto-generated, excludes `*.db`, `*.db-wal`, `*.db-shm`, `cache/`, `*.log`, `.dirty`
+
+Consumers do **not** need to add `.codegraph/` to the repo's own `.gitignore`. The directory itself is harmless to commit (it carries only the inner `.gitignore`); the DB stays out of version control automatically.
