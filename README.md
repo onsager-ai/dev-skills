@@ -45,6 +45,7 @@ intended shape — one machine, one canonical copy.
 | [`rust-node-bootstrap`](skills/rust-node-bootstrap/SKILL.md) | Scaffold a new Rust + Node.js hybrid project (Cargo + pnpm + Turbo). |
 | [`rust-node-ci`](skills/rust-node-ci/SKILL.md) | GitHub Actions workflows for Rust + Node.js hybrid repos. |
 | [`rust-npm-publish`](skills/rust-npm-publish/SKILL.md) | Publish a Rust+Node hybrid as platform-specific npm packages with version sync. |
+| [`codegraph`](skills/codegraph/SKILL.md) | Pre-indexed code knowledge graph (MCP, SQLite + tree-sitter) for cross-file exploration of brownfield repos. Cloud cold-start spike protocol included. |
 
 ## What lives here vs. what stays per-repo
 
