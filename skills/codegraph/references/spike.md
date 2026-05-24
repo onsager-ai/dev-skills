@@ -82,7 +82,10 @@ Cloud session cannot restart Claude Code to load the MCP server. Probe via CLI â
 
 Pick 3 queries meaningful for the specific repo. If unfamiliar, `codegraph files` or `ls` first. Prefer one each of: symbol lookup / cross-file call traversal / task context.
 
+Run these from inside the repo â€” `query`, `context`, and `files` operate on `cwd` and reject a trailing path argument. Only `init`, `index`, `status`, `sync` take a path.
+
 ```bash
+cd <repo-root>
 { /usr/bin/time -v npx @colbymchenry/codegraph query "<SYMBOL>" --json ; } 2> q1.time.log > q1.out.json
 { /usr/bin/time -v npx @colbymchenry/codegraph context "<TASK>" --format markdown --max-nodes 20 ; } 2> q2.time.log > q2.out.md
 { /usr/bin/time -v npx @colbymchenry/codegraph files --json ; } 2> q3.time.log > q3.out.json

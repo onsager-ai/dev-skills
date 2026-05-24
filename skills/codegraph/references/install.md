@@ -10,7 +10,21 @@ cd <project-root>
 codegraph init -i        # interactive; also indexes
 ```
 
-Wire MCP server — add to `~/.claude.json`:
+Wire MCP server — easiest path uses the built-in installer (writes `~/.claude.json` and the auto-allow list in one shot):
+
+```bash
+codegraph install --target=claude --yes
+```
+
+Valid agent IDs are `claude / cursor / codex / opencode / hermes` (not `claude-code`). `--yes` defaults to `--location=global --target=auto`.
+
+To see the snippet without writing anything (useful in environments where editing `~/.claude.json` is gated):
+
+```bash
+codegraph install --print-config claude
+```
+
+Manual equivalent — add to `~/.claude.json`:
 
 ```json
 {
@@ -24,7 +38,7 @@ Wire MCP server — add to `~/.claude.json`:
 }
 ```
 
-Restart Claude Code. Auto-allow tools by adding to `~/.claude/settings.json`:
+Restart Claude Code. If you used the manual path, also add auto-allow to `~/.claude/settings.json`:
 
 ```json
 {
@@ -57,8 +71,8 @@ npx @colbymchenry/codegraph index
 
 MCP wiring in cloud: codegraph is stdio-only and Claude Code Cloud's MCP support for in-session stdio servers needs verification. Two fallbacks:
 
-1. **CLI bypass** (works today): main session uses `npx codegraph query`, `codegraph context`, etc. directly via Bash. No MCP, no restart needed.
-2. **In-session MCP** (verify): if cloud allows editing `.claude.json` per-session, wire codegraph there and check if restart is supported.
+1. **CLI bypass** (works today): main session uses `npx codegraph query`, `codegraph context`, `codegraph files`, etc. directly via Bash. No MCP, no restart needed.
+2. **In-session MCP** (verify): if cloud allows editing `~/.claude.json` per-session, run `codegraph install --target=claude --yes` (or paste the snippet from `codegraph install --print-config claude`) and check if restart is supported.
 
 Until verified, default to CLI bypass.
 
