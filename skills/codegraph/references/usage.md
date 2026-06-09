@@ -15,7 +15,12 @@ Adapted from upstream's global instructions, with main-session vs subagent split
 | codegraph_status | Index health | main | light |
 | codegraph_context | Build task context (returns source blocks) | subagent only | heavy |
 
-Note: upstream README mentions a `codegraph_explore` tool in some places. As of this skill's drafting it is not in the listed MCP tools table — confirm against the version installed.
+Note: newer versions (verified on the npm CLI `v0.9.9`) expose a 9th tool,
+`codegraph_explore`, and the MCP server's own instructions name it the
+**PRIMARY** tool: one capped call returns the verbatim source of the relevant
+symbols grouped by file (Read-equivalent), so for "how does X work" /
+architecture / "where is X" questions it is usually the *only* call needed —
+prefer it over a `context`-using subagent on versions that have it.
 
 ## Do
 
@@ -27,9 +32,20 @@ Note: upstream README mentions a `codegraph_explore` tool in some places. As of 
 ## Don't
 
 - Call `codegraph_context` directly in main session — its source blocks pollute main context
-- Fall back to grep/glob before trying `codegraph_search` — that defeats the point
 - Re-index manually if status shows fresh — the file watcher handles it on local; in cloud sessions the index is bounded to session lifetime anyway
-- Trust the index for files modified within the last few seconds — auto-sync has a 2s debounce window
+- Trust the index for files modified within the last few seconds — auto-sync has a ~1–2s debounce window
+- **Trust `callers`/`callees`/`impact` for *completeness*** (every caller before a rename, exhaustive blast radius). They're unsound — they silently drop unresolved method/generic/trait-dispatch edges. Confirm with grep; see SKILL.md → *Soundness & limits*.
+- **Query an overloaded name with bare `callers`/`callees`.** Results conflate or under-resolve across same-named definitions. Use `codegraph_node` on a specific symbol id, or grep.
+
+## Grep is the completeness backstop (not a fallback)
+
+Earlier guidance said "don't fall back to grep — that defeats the point."
+That was wrong, and is corrected here. Grep is not a fallback for codegraph;
+it is the **authoritative source for completeness** where codegraph is only
+an accelerator. Use codegraph to *orient and pre-rank*; use grep to *confirm*
+whenever missing a result is costly (renames, signature changes, security
+audits). A codegraph-vs-grep delta means "codegraph missed it," not "grep
+over-matched." Full rationale + the decision matrix live in SKILL.md.
 
 ## Subagent prompt template
 
@@ -47,9 +63,10 @@ When delegating exploration, include this in the subagent prompt:
 | MCP tool | CLI command |
 |---|---|
 | codegraph_search | `codegraph query <name> --json` |
-| codegraph_context | `codegraph context "<task>" --format markdown --max-nodes <N>` |
+| codegraph_context | `codegraph context "<task>" --format markdown --max-nodes <N>` (absent on some versions, e.g. CLI `v0.9.9` — use `query` + `callers`/`callees` instead) |
 | codegraph_files | `codegraph files --json` |
 | codegraph_status | `codegraph status` |
-| codegraph_callers / callees / impact / node | not exposed as standalone CLI in upstream as of writing — verify |
+| codegraph_callers / callees / impact | `codegraph callers <name>` / `callees <name>` / `impact <name> [--depth N] [--json]` — confirmed present in CLI `v0.9.9` |
+| (no `node` subcommand) | use `codegraph query <name>` for a symbol's location |
 
 Use CLI bypass when in cloud session without MCP wiring; the heavy/light distinction still applies.
