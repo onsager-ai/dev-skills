@@ -212,6 +212,8 @@ open  →  closed
 
 No status labels are applied — the issue's open/closed state plus the comment thread is the audit trail. PRs cross-link via `Closes #N` / `Part of #N` in the PR body; the repo's `*-pr-lifecycle` sister skill covers how Plan checkboxes get ticked as `Part of` PRs land.
 
+Since "in flight" isn't a label anymore, the `scripts/` helpers below reconstruct that view on demand — they read the open state *plus* linked PRs so you can see which open specs are actually being worked.
+
 ## Spec Relationships via Sub-Issues
 
 Use GitHub sub-issues for parent/child decomposition:
@@ -274,6 +276,17 @@ Treat reading those as part of step 1 (Discover). Don't draft a spec without hav
 | Repo's `CLAUDE.md`                                     | Always — repo-specific principles + always-spec surfaces  |
 | Repo's `*-dev-process` sister skill                    | Always — area-label taxonomy + spec-vs-`trivial` gate     |
 | Repo's `*-pr-lifecycle` sister skill                   | When publishing — does the repo automate `pr-spec-sync`?  |
+
+## Scripts
+
+Because no status label is applied, these helpers reconstruct the lifecycle view from issue state + linked PRs so you don't have to open each issue. Both take `--repo owner/name` (defaults to the current repo) and need `gh` + `jq`.
+
+| Script                                            | Purpose                                                                                  |
+|---------------------------------------------------|------------------------------------------------------------------------------------------|
+| [scripts/spec-list.sh](scripts/spec-list.sh)      | List spec issues with derived activity + area + plan progress. `--state open\|closed\|all`, `--area <a>`. |
+| [scripts/spec-show.sh](scripts/spec-show.sh) `<N>`| Detail one spec: derived activity, every linked PR + its state, plan progress, outstanding open questions. |
+
+Derived-activity legend: `○ todo` (open, no PR) · `● in-progress` (open, ≥1 PR open) · `◐ partial` (open, only merged PRs — e.g. a `Part of #N` parent) · `✓ done` (closed). The SOP lifecycle is still just open → closed; this is a reporting overlay, not new state.
 
 ## Templates
 
