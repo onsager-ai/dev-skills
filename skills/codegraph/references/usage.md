@@ -15,12 +15,7 @@ Adapted from upstream's global instructions, with main-session vs subagent split
 | codegraph_status | Index health | main | light |
 | codegraph_context | Build task context (returns source blocks) | subagent only | heavy |
 
-Note: newer versions (verified on the npm CLI `v0.9.9`) expose a 9th tool,
-`codegraph_explore`, and the MCP server's own instructions name it the
-**PRIMARY** tool: one capped call returns the verbatim source of the relevant
-symbols grouped by file (Read-equivalent), so for "how does X work" /
-architecture / "where is X" questions it is usually the *only* call needed —
-prefer it over a `context`-using subagent on versions that have it.
+Note: newer versions (verified on the npm CLI `v0.9.9`) expose a 9th tool, `codegraph_explore`, and the MCP server's own instructions name it the **PRIMARY** tool: one capped call returns the verbatim source of the relevant symbols grouped by file (Read-equivalent), so for "how does X work" / architecture / "where is X" questions it is usually the *only* call needed — prefer it over a `context`-using subagent on versions that have it.
 
 ## Do
 
@@ -39,13 +34,7 @@ prefer it over a `context`-using subagent on versions that have it.
 
 ## Grep is the completeness backstop (not a fallback)
 
-Earlier guidance said "don't fall back to grep — that defeats the point."
-That was wrong, and is corrected here. Grep is not a fallback for codegraph;
-it is the **authoritative source for completeness** where codegraph is only
-an accelerator. Use codegraph to *orient and pre-rank*; use grep to *confirm*
-whenever missing a result is costly (renames, signature changes, security
-audits). A codegraph-vs-grep delta means "codegraph missed it," not "grep
-over-matched." Full rationale + the decision matrix live in SKILL.md.
+Earlier guidance said "don't fall back to grep — that defeats the point." That was wrong, and is corrected here. Grep is not a fallback for codegraph; it is the **authoritative source for completeness** where codegraph is only an accelerator. Use codegraph to *orient and pre-rank*; use grep to *confirm* whenever missing a result is costly (renames, signature changes, security audits). A codegraph-vs-grep delta means "codegraph missed it," not "grep over-matched." Full rationale + the decision matrix live in SKILL.md.
 
 ## Subagent prompt template
 

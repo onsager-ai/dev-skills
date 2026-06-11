@@ -1,7 +1,6 @@
 # GitHub PR Sync Reference
 
-How to push worktree branches to GitHub and manage pull requests via the
-`gh` CLI. Assumes `gh` is authenticated (`gh auth status`).
+How to push worktree branches to GitHub and manage pull requests via the `gh` CLI. Assumes `gh` is authenticated (`gh auth status`).
 
 ## Table of Contents
 1. [Push a branch](#push-a-branch)
@@ -23,8 +22,7 @@ From inside the worktree (or with explicit path):
 git push -u origin <branch-name>
 ```
 
-The `-u` flag sets the upstream tracking reference so future `git push` and
-`git pull` in that worktree work without arguments.
+The `-u` flag sets the upstream tracking reference so future `git push` and `git pull` in that worktree work without arguments.
 
 ---
 
@@ -61,8 +59,7 @@ EOF
 
 ## Draft PRs
 
-Open a PR as draft when the agent session is still in progress — signals to
-reviewers that it's not ready:
+Open a PR as draft when the agent session is still in progress — signals to reviewers that it's not ready:
 
 ```bash
 gh pr create --draft --title "..." --body "..."
@@ -76,9 +73,7 @@ gh pr ready <pr-number>
 gh pr ready
 ```
 
-**Workflow for parallel sessions:** Open all sessions as drafts immediately
-after the first commit. This reserves the PR slot and makes coordination
-visible. Promote to ready one at a time as sessions complete.
+**Workflow for parallel sessions:** Open all sessions as drafts immediately after the first commit. This reserves the PR slot and makes coordination visible. Promote to ready one at a time as sessions complete.
 
 ---
 
@@ -104,15 +99,13 @@ gh pr comment <pr-number> --body "Agent session complete. Ready for review."
 git push --force-with-lease
 ```
 
-`--force-with-lease` is safer than `--force`: it fails if the remote has
-commits you haven't fetched yet, preventing accidental overwrites.
+`--force-with-lease` is safer than `--force`: it fails if the remote has commits you haven't fetched yet, preventing accidental overwrites.
 
 ---
 
 ## Link Related PRs
 
-When parallel sessions work on dependent or related features, note the
-relationship in the PR body:
+When parallel sessions work on dependent or related features, note the relationship in the PR body:
 
 ```markdown
 ## Related PRs
@@ -121,8 +114,7 @@ relationship in the PR body:
 - Supersedes: #38 (closing that one in favor of this approach)
 ```
 
-GitHub will auto-link PR numbers in the body. Use keywords to auto-close
-issues:
+GitHub will auto-link PR numbers in the body. Use keywords to auto-close issues:
 
 ```markdown
 Closes #99
@@ -176,15 +168,13 @@ gh pr merge <pr-number> --rebase --delete-branch
 
 ### Merge commit
 
-Creates an explicit merge commit. Useful when you want to preserve the PR
-boundary in history:
+Creates an explicit merge commit. Useful when you want to preserve the PR boundary in history:
 
 ```bash
 gh pr merge <pr-number> --merge --delete-branch
 ```
 
-**`--delete-branch`** removes the remote branch after merge. Combine with
-local cleanup (see below).
+**`--delete-branch`** removes the remote branch after merge. Combine with local cleanup (see below).
 
 ---
 

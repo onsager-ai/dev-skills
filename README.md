@@ -1,13 +1,6 @@
 # dev-skills
 
-Cross-repo **engineering-methodology skills** — the dev-process scaffolding
-that has converged across [`onsager-ai/onsager`](https://github.com/onsager-ai/onsager),
-[`onsager-ai/onsager-skills`](https://github.com/onsager-ai/onsager-skills),
-[`onsager-ai/duhem`](https://github.com/onsager-ai/duhem), and
-[`codervisor/lean-spec`](https://github.com/codervisor/lean-spec) and is
-worth maintaining once in one place. Each repo previously carried its
-own copy; this bundle consolidates them so a single `npx skills add`
-installs the lot.
+Cross-repo **engineering-methodology skills** — the dev-process scaffolding that has converged across [`onsager-ai/onsager`](https://github.com/onsager-ai/onsager), [`onsager-ai/onsager-skills`](https://github.com/onsager-ai/onsager-skills), [`onsager-ai/duhem`](https://github.com/onsager-ai/duhem), and [`codervisor/lean-spec`](https://github.com/codervisor/lean-spec) and is worth maintaining once in one place. Each repo previously carried its own copy; this bundle consolidates them so a single `npx skills add` installs the lot.
 
 ## Install
 
@@ -16,8 +9,7 @@ installs the lot.
 npx skills add -g onsager-ai/dev-skills --skill '*' -a claude-code
 ```
 
-Installed under `~/.claude/skills/<skill-name>/`. The skills load
-automatically whenever Claude Code starts in any directory.
+Installed under `~/.claude/skills/<skill-name>/`. The skills load automatically whenever Claude Code starts in any directory.
 
 To install a single skill, drop the `'*'`:
 
@@ -25,9 +17,7 @@ To install a single skill, drop the `'*'`:
 npx skills add -g onsager-ai/dev-skills --skill plan-dag -a claude-code
 ```
 
-Project-scope (drops symlinks into `./.claude/skills/`) is also
-supported, but for cross-repo dev skills the global install is the
-intended shape — one machine, one canonical copy.
+Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but for cross-repo dev skills the global install is the intended shape — one machine, one canonical copy.
 
 ## Skills
 
@@ -57,38 +47,21 @@ intended shape — one machine, one canonical copy.
 | User-facing product loop | `onsager-ai/onsager-skills` | `onsager-design-workflow`, `onsager-run-workflow` |
 | Repo-local dev process | the consumer repo's `.claude/skills/` | `onsager-dev-process`, `lean-spec-pre-push`, `duhem-pr-lifecycle` |
 
-A repo-local skill stays local when it carries the repo's specific
-area taxonomy, build-tool conventions, or product-specific seams. A
-skill belongs here when the procedure generalizes — Onsager, lean-spec,
-and Duhem all benefit from the same shape with at most a thin CLAUDE.md
-overlay.
+A repo-local skill stays local when it carries the repo's specific area taxonomy, build-tool conventions, or product-specific seams. A skill belongs here when the procedure generalizes — Onsager, lean-spec, and Duhem all benefit from the same shape with at most a thin CLAUDE.md overlay.
 
 ## Contributing
 
-This bundle is the consolidation target for engineering-methodology
-skills used across the listed repos. To change a skill:
+This bundle is the consolidation target for engineering-methodology skills used across the listed repos. To change a skill:
 
-1. Open a PR against this repo with the SKILL.md edit (and any
-   accompanying `scripts/` / `references/` / `templates/` changes).
+1. Open a PR against this repo with the SKILL.md edit (and any accompanying `scripts/` / `references/` / `templates/` changes).
 2. Get it reviewed and merged.
-3. Re-run `npx skills add -g onsager-ai/dev-skills --skill '*' -a claude-code`
-   in every consumer repo's working directory (or globally on each
-   developer machine) to pick up the new version.
+3. Re-run `npx skills add -g onsager-ai/dev-skills --skill '*' -a claude-code` in every consumer repo's working directory (or globally on each developer machine) to pick up the new version.
 
-The installed copies under `~/.claude/skills/` are **read-only**.
-Consumer repos that include the `check-skill-edit.sh` PreToolUse hook
-will block direct edits to any installed copy that carries a
-`.upstream-source` marker — the fix is to PR upstream and re-run
-`npx skills add`.
+The installed copies under `~/.claude/skills/` are **read-only**. Consumer repos that include the `check-skill-edit.sh` PreToolUse hook will block direct edits to any installed copy that carries a `.upstream-source` marker — the fix is to PR upstream and re-run `npx skills add`.
 
 ## Adopting a skill in another repo
 
-If you're adding a new consumer repo that wants every skill here,
-just run the install one-liner. If your repo only needs one or two,
-install them individually with `--skill <name>`. Skills with
-`<repo>-pr-lifecycle`-shaped pointers (like `ci-triage`) expect the
-consumer repo to provide its own sister skill; the consumer's
-CLAUDE.md should name it and reference the dev-skills counterpart.
+If you're adding a new consumer repo that wants every skill here, just run the install one-liner. If your repo only needs one or two, install them individually with `--skill <name>`. Skills with `<repo>-pr-lifecycle`-shaped pointers (like `ci-triage`) expect the consumer repo to provide its own sister skill; the consumer's CLAUDE.md should name it and reference the dev-skills counterpart.
 
 ## License
 

@@ -18,8 +18,7 @@ metadata:
 
 # Parallel Worktrees
 
-Run multiple AI coding sessions in parallel — each isolated in its own git
-worktree, pushing to its own branch, opening its own PR.
+Run multiple AI coding sessions in parallel — each isolated in its own git worktree, pushing to its own branch, opening its own PR.
 
 ## When to Use This Skill
 
@@ -62,17 +61,11 @@ Hit an error?
 
 ## Core Concepts
 
-**Worktree vs clone** — A worktree shares the same `.git` directory as the
-main checkout. No double-fetch, no disk waste. Each worktree checks out a
-*different* branch. Isolated at the filesystem level; same object store.
+**Worktree vs clone** — A worktree shares the same `.git` directory as the main checkout. No double-fetch, no disk waste. Each worktree checks out a *different* branch. Isolated at the filesystem level; same object store.
 
-**One agent, one worktree, one branch** — This is the cardinal rule. Two
-agents sharing a worktree will corrupt each other's index. Two agents on the
-same branch will produce conflicting history.
+**One agent, one worktree, one branch** — This is the cardinal rule. Two agents sharing a worktree will corrupt each other's index. Two agents on the same branch will produce conflicting history.
 
-**PRs as the coordination channel** — Agents communicate intent through PR
-titles, descriptions, and comments — not through shared files or direct
-worktree reads.
+**PRs as the coordination channel** — Agents communicate intent through PR titles, descriptions, and comments — not through shared files or direct worktree reads.
 
 ## Layout Convention
 
@@ -108,13 +101,11 @@ Branch: feat/auth
 Scope: implement JWT authentication — do not touch files outside this scope
 ```
 
-The agent operates entirely within this directory. It should have no awareness
-of other worktrees.
+The agent operates entirely within this directory. It should have no awareness of other worktrees.
 
 ### 3. Work and commit
 
-Normal git flow inside the worktree — the agent uses `git add`, `git commit`
-as usual. The branch is isolated from main and all sibling worktrees.
+Normal git flow inside the worktree — the agent uses `git add`, `git commit` as usual. The branch is isolated from main and all sibling worktrees.
 
 ### 4. Push and open PR
 
@@ -150,8 +141,7 @@ git worktree prune          # removes stale metadata entries
 
 ## Branch Naming
 
-Use a consistent pattern so agents (and humans) can parse ownership at a
-glance:
+Use a consistent pattern so agents (and humans) can parse ownership at a glance:
 
 ```
 <type>/<scope>/<short-description>
@@ -187,5 +177,4 @@ Read these when you need more depth:
 npx skills add -g onsager-ai/dev-skills --skill parallel-worktrees -a claude-code -y
 ```
 
-Auto-activates when: user mentions "worktree", "parallel agents", "multiple
-agent sessions", or asks to work on several features simultaneously with AI.
+Auto-activates when: user mentions "worktree", "parallel agents", "multiple agent sessions", or asks to work on several features simultaneously with AI.

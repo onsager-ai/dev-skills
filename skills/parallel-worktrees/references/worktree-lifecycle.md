@@ -1,7 +1,6 @@
 # Worktree Lifecycle Reference
 
-Full command reference for git worktree operations — creation, inspection,
-maintenance, and removal.
+Full command reference for git worktree operations — creation, inspection, maintenance, and removal.
 
 ## Table of Contents
 1. [Create](#create)
@@ -23,8 +22,7 @@ git worktree add <path> -b <branch-name>
 
 - Creates the directory at `<path>` if it doesn't exist.
 - Creates and checks out `<branch-name>` in one step.
-- The branch starts at `HEAD` of the current checkout unless you pass a
-  base commit.
+- The branch starts at `HEAD` of the current checkout unless you pass a base commit.
 
 ```bash
 # Start from a specific base
@@ -45,8 +43,7 @@ The branch must not already be checked out in another worktree.
 git worktree add <path> origin/<branch-name>
 ```
 
-This creates a **detached HEAD** pointing at the remote commit. If you want a
-local branch that tracks the remote:
+This creates a **detached HEAD** pointing at the remote commit. If you want a local branch that tracks the remote:
 
 ```bash
 git worktree add -b <local-branch> <path> origin/<remote-branch>
@@ -93,16 +90,13 @@ Rename or relocate a worktree directory:
 git worktree move <old-path> <new-path>
 ```
 
-Git updates the internal metadata so `git worktree list` reflects the new
-location. Do NOT just `mv` the directory — the internal bookkeeping won't
-update and you'll end up with a stale entry.
+Git updates the internal metadata so `git worktree list` reflects the new location. Do NOT just `mv` the directory — the internal bookkeeping won't update and you'll end up with a stale entry.
 
 ---
 
 ## Lock / Unlock
 
-Locking prevents `git worktree prune` from removing a worktree that happens to
-be on a removable drive or network share that's temporarily unmounted:
+Locking prevents `git worktree prune` from removing a worktree that happens to be on a removable drive or network share that's temporarily unmounted:
 
 ```bash
 git worktree lock <path> --reason "on external drive"
@@ -129,8 +123,7 @@ This removes the directory AND cleans up the metadata entry inside `.git/`.
 
 ### Prune stale entries
 
-If a worktree directory was deleted by other means (e.g., `rm -rf`), the
-`.git/worktrees/<name>/` metadata entry is left behind. Prune cleans it:
+If a worktree directory was deleted by other means (e.g., `rm -rf`), the `.git/worktrees/<name>/` metadata entry is left behind. Prune cleans it:
 
 ```bash
 git worktree prune
@@ -152,13 +145,11 @@ git worktree prune --dry-run --verbose
 fatal: 'feat/auth' is already checked out at '/home/user/myrepo-wt/feat/auth'
 ```
 
-**Cause:** The branch is open in another worktree.
-**Fix:** Use a different branch name, or remove the existing worktree first.
+**Cause:** The branch is open in another worktree. **Fix:** Use a different branch name, or remove the existing worktree first.
 
 ### Detached HEAD after `git worktree add <path> origin/<branch>`
 
-This is expected behavior when adding from a remote tracking ref without `-b`.
-To attach to a branch:
+This is expected behavior when adding from a remote tracking ref without `-b`. To attach to a branch:
 
 ```bash
 # Inside the worktree
@@ -173,11 +164,9 @@ git switch -c <local-branch> --track origin/<remote-branch>
 fatal: Unable to create '/home/user/myrepo-wt/feat/auth/.git': File exists
 ```
 
-Each worktree has its own index file inside `.git/worktrees/<name>/index`.
-This error means *another process* is running git in the same worktree.
+Each worktree has its own index file inside `.git/worktrees/<name>/index`. This error means *another process* is running git in the same worktree.
 
-**Fix:** Ensure only one agent session operates per worktree. If the lock file
-is truly stale (the process crashed), remove it:
+**Fix:** Ensure only one agent session operates per worktree. If the lock file is truly stale (the process crashed), remove it:
 
 ```bash
 rm /path/to/worktree/.git/index.lock
@@ -185,8 +174,7 @@ rm /path/to/worktree/.git/index.lock
 
 ### Multiple worktrees, bare repo
 
-If the main repo is a bare clone (`git clone --bare`), you can still use
-worktrees — they're added with:
+If the main repo is a bare clone (`git clone --bare`), you can still use worktrees — they're added with:
 
 ```bash
 git -C <bare-repo-path> worktree add <path> -b <branch>
@@ -196,8 +184,7 @@ This is common in CI/CD setups and server-side deployments.
 
 ### Worktree inside the repo directory
 
-You *can* put a worktree inside the main repo (e.g., `<repo>/.worktrees/`),
-but then you need to add it to `.gitignore`:
+You *can* put a worktree inside the main repo (e.g., `<repo>/.worktrees/`), but then you need to add it to `.gitignore`:
 
 ```
 # .gitignore

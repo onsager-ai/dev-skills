@@ -75,11 +75,9 @@ my-tool/
 
 Order matters — later files depend on earlier ones:
 
-1. **Root configs** — `package.json`, `pnpm-workspace.yaml`, `Cargo.toml`, `turbo.json`
-   Use [templates/bootstrap/](./templates/bootstrap/).
+1. **Root configs** — `package.json`, `pnpm-workspace.yaml`, `Cargo.toml`, `turbo.json` Use [templates/bootstrap/](./templates/bootstrap/).
 2. **Publish config** — `publish.config.ts` (drives script + workflow generation)
-3. **Main package wrapper** — `bin.js` + `package.json` from rust-npm-publish skill templates,
-   fill in scope/binary name/platforms
+3. **Main package wrapper** — `bin.js` + `package.json` from rust-npm-publish skill templates, fill in scope/binary name/platforms
 4. **Scripts** — Copy from rust-npm-publish skill templates
 5. **Workflows** — Copy from rust-node-ci skill templates, customize matrix
 6. **LeanSpec** — Initialize `.lean-spec/config.json` and `specs/`

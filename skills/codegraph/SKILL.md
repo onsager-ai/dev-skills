@@ -23,38 +23,17 @@ It does **not** replace grep. Codegraph is a tree-sitter *approximation* of the 
 
 ## Soundness & limits — read before trusting a result
 
-Codegraph is built on tree-sitter, not the compiler, so its call/reference
-edges are an **approximation**. It fails in three confirmed ways. The
-governing rule falls out of them:
+Codegraph is built on tree-sitter, not the compiler, so its call/reference edges are an **approximation**. It fails in three confirmed ways. The governing rule falls out of them:
 
-> **Grep is the source of truth for *completeness*. Codegraph is the
-> accelerator for *orientation and traversal*. Never invert these.**
+> **Grep is the source of truth for *completeness*. Codegraph is the accelerator for *orientation and traversal*. Never invert these.**
 
-The asymmetry is the whole argument: for a refactor, a **false negative is
-dangerous** (you miss a caller, ship a break); a false positive is merely
-annoying (you glance and discard). Codegraph has false negatives; grep
-does not. So codegraph may *propose and rank*, but grep *confirms* whenever
-the answer must be exhaustive.
+The asymmetry is the whole argument: for a refactor, a **false negative is dangerous** (you miss a caller, ship a break); a false positive is merely annoying (you glance and discard). Codegraph has false negatives; grep does not. So codegraph may *propose and rank*, but grep *confirms* whenever the answer must be exhaustive.
 
 The three failure modes (measured on a ~580-file Rust+TS repo):
 
-1. **Unsound edges → false negatives.** `callers`/`callees`/`impact` miss
-   real call sites when the receiver type can't be resolved from syntax
-   alone (calls on locals, generics, trait objects). Measured: a method
-   with **8** real callers returned **2** — the 5 dropped were
-   `local.method()` and generic-dispatch sites, with **no warning**. Exact
-   on unique free-functions + direct calls (verified 1/1, 2/2); unreliable
-   on method dispatch.
-2. **Name resolution is fuzzy and overload-blind.** Bare-name queries
-   prefix-match (`useWorkspace` answered for `useWorkspacesQuery` — a
-   *different symbol*) and conflate overloads (`execute`, with 19
-   definitions, returned `sqlx`'s `.execute()` DB calls, not the trait
-   method). For any name with multiple definitions, drop to
-   `codegraph_node` on a specific symbol id; bare `callers`/`callees` are
-   unattributable.
-3. **The index lags the disk.** CLI sees nothing until `codegraph sync`
-   (~0.3s); the MCP file-watcher closes the gap to ~1–2s. Right after an
-   edit, the index is wrong — grep/Read is ground truth until it catches up.
+1. **Unsound edges → false negatives.** `callers`/`callees`/`impact` miss real call sites when the receiver type can't be resolved from syntax alone (calls on locals, generics, trait objects). Measured: a method with **8** real callers returned **2** — the 5 dropped were `local.method()` and generic-dispatch sites, with **no warning**. Exact on unique free-functions + direct calls (verified 1/1, 2/2); unreliable on method dispatch.
+2. **Name resolution is fuzzy and overload-blind.** Bare-name queries prefix-match (`useWorkspace` answered for `useWorkspacesQuery` — a *different symbol*) and conflate overloads (`execute`, with 19 definitions, returned `sqlx`'s `.execute()` DB calls, not the trait method). For any name with multiple definitions, drop to `codegraph_node` on a specific symbol id; bare `callers`/`callees` are unattributable.
+3. **The index lags the disk.** CLI sees nothing until `codegraph sync` (~0.3s); the MCP file-watcher closes the gap to ~1–2s. Right after an edit, the index is wrong — grep/Read is ground truth until it catches up.
 
 ### Decision matrix
 
@@ -68,10 +47,7 @@ The three failure modes (measured on a ~580-file Rust+TS repo):
 | Just-edited code | **grep** (or `codegraph sync` first) | Index is stale until reindex |
 | Trait-dispatch / generic call sites | **grep + reading** | Both weak; codegraph silently drops them, grep at least surfaces the text |
 
-**Workflow:** start with `explore` for the map and `callers`/`impact` for
-direction — but the moment the answer must be *complete* (a rename, "did I
-get everyone?"), confirm with grep and treat any codegraph-vs-grep delta as
-"codegraph missed it," not "grep over-matched."
+**Workflow:** start with `explore` for the map and `callers`/`impact` for direction — but the moment the answer must be *complete* (a rename, "did I get everyone?"), confirm with grep and treat any codegraph-vs-grep delta as "codegraph missed it," not "grep over-matched."
 
 ## Prerequisites
 

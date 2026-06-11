@@ -63,8 +63,7 @@ Debugging a failure?
 │   └── @scope/my-tool-windows-x64    ← Windows x86_64
 ```
 
-Each platform package contains **only** the pre-compiled binary for that target.
-npm installs only the one matching the user's OS/CPU at install time.
+Each platform package contains **only** the pre-compiled binary for that target. npm installs only the one matching the user's OS/CPU at install time.
 
 Same approach used by SWC, Turbopack, esbuild, and similar tools.
 
@@ -91,15 +90,13 @@ sync-versions → generate-manifests → add-platform-deps → copy-binaries
 → wait-propagation → publish-main → restore-packages
 ```
 
-**Critical ordering**: Platform packages MUST be published and propagated before
-main packages, because main packages reference them as `optionalDependencies`.
+**Critical ordering**: Platform packages MUST be published and propagated before main packages, because main packages reference them as `optionalDependencies`.
 
 See [references/publish-pipeline.md](./references/publish-pipeline.md) for step-by-step details.
 
 ## Main Package Wrapper (`bin.js`)
 
-The main npm package is a **thin JS wrapper** — `bin.js` resolves the platform binary and spawns it.
-See [templates/wrapper/](./templates/wrapper/) for the template.
+The main npm package is a **thin JS wrapper** — `bin.js` resolves the platform binary and spawns it. See [templates/wrapper/](./templates/wrapper/) for the template.
 
 Key details:
 - `process.platform` returns `win32` (not `windows`) — map `win32-x64` → `@scope/cli-windows-x64`
@@ -158,8 +155,7 @@ pnpm tsx scripts/sync-versions.ts     # Propagate to all packages + Cargo.toml
 
 ### Dev Builds
 
-CI computes: `0.2.15` → `0.2.16-dev.{github_run_id}`
-Published with `--tag dev`. Install: `npm install my-cli@dev`
+CI computes: `0.2.15` → `0.2.16-dev.{github_run_id}` Published with `--tag dev`. Install: `npm install my-cli@dev`
 
 Cargo.toml stays at base version (`0.2.15`) for dev builds — Cargo pre-release handling differs from npm.
 
@@ -183,8 +179,7 @@ npm publish
 pnpm tsx scripts/restore-packages.ts                 # Restore workspace:*
 ```
 
-See [references/workspace-protocol.md](./references/workspace-protocol.md) for details.
-See [references/version-strategy.md](./references/version-strategy.md) for the full strategy.
+See [references/workspace-protocol.md](./references/workspace-protocol.md) for details. See [references/version-strategy.md](./references/version-strategy.md) for the full strategy.
 
 ## Troubleshooting Quick Reference
 
