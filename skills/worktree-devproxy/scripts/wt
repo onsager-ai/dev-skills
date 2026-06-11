@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cmd=${1:?usage: wt new|rm|ls <branch>}
+
+root=$(git rev-parse --git-common-dir | xargs dirname | xargs realpath)
+repo=$(basename "$root")
+
+case $cmd in
+  new)
+    branch=$2
+    name=$(echo "$branch" | tr '/_.' '-')
+    dir="$root/../${repo}-wt/$name"
+    git worktree add "$dir" -b "$branch" 2>/dev/null \
+      || git worktree add "$dir" "$branch"
+    ( cd "$dir" && direnv allow && direnv exec . docker compose up -d --build )
+    echo "✓ http://$name.$repo.localhost:8000"
+    ;;
+  rm)
+    name=$(echo "$2" | tr '/_.' '-')
+    dir="$root/../${repo}-wt/$name"
+    ( cd "$dir" && direnv exec . docker compose down -v ) || true
+    # Containers run as root, so volume mountpoints (node_modules, target)
+    # and files they wrote in the bind mount are root-owned; chown via a
+    # throwaway container before git can delete the tree.
+    git worktree remove --force "$dir" 2>/dev/null || {
+      docker run --rm -v "$dir:/w" alpine chown -R "$(id -u):$(id -g)" /w
+      git worktree remove --force "$dir" 2>/dev/null || rm -rf "$dir"
+      git worktree prune
+    }
+    ;;
+  ls)
+    docker ps --format '{{.Names}}\t{{.Status}}' | grep -v traefik | sort
+    ;;
+esac

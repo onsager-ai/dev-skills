@@ -1,0 +1,23 @@
+services:
+  traefik:
+    # v3.3 hardcodes Docker API 1.24, which Docker Engine 29 rejects; v3 latest negotiates properly
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      # Containers sit on [default, devproxy]; always dial them via devproxy.
+      - --providers.docker.network=devproxy
+      - --entrypoints.web.address=:8000
+      - --api.dashboard=true
+      - --api.insecure=true
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [devproxy]
+
+networks:
+  devproxy:
+    name: devproxy
