@@ -2,7 +2,7 @@
 
 Section-by-section guide for writing lean-spec style GitHub issue specs. Based on the [lean-spec SDD methodology](https://github.com/codervisor/lean-spec), adapted to use GitHub issues as the sole spec medium.
 
-This reference is repo-agnostic. Consumer repos overlay their area-label taxonomy, custom body sections (e.g. Provider impact, Schema impact), and additional principles via their `CLAUDE.md` and `*-dev-process` / `*-pre-push` / `*-pr-lifecycle` sister skills — read those first.
+This reference is repo-agnostic. Consumer repos overlay their area-label taxonomy, custom body sections (e.g. Provider impact, Schema impact), and additional principles via their `CLAUDE.md` and `*-dev-process` sister skill — read those first. The `pre-push` / `pr-lifecycle` methodology is shared globally.
 
 ## Metadata via GitHub Issue Features
 
@@ -134,7 +134,7 @@ The timeout duration is server-configurable via environment variable. Per-sessio
 - Items should be small enough to verify in isolation.
 - Order reflects implementation sequence.
 - If a plan has more than ~10 items, the spec is too big — split into sub-issues.
-- Checkboxes serve as progress tracking on the issue itself; tick them manually as `Part of #N` PRs merge (see the repo's `*-pr-lifecycle` sister skill).
+- Checkboxes serve as progress tracking on the issue itself; tick them manually as `Part of #N` PRs merge (see the global `pr-lifecycle` skill).
 
 ### Test
 
