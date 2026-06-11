@@ -1,7 +1,6 @@
 # Cloud Authentication Reference
 
-How `gh` CLI authentication works in Claude Code cloud and GitHub Copilot
-coding agent environments.
+How `gh` CLI authentication works in Claude Code cloud and GitHub Copilot coding agent environments.
 
 ## Table of Contents
 1. [Claude Code cloud architecture](#claude-code-cloud-architecture)
@@ -16,14 +15,12 @@ coding agent environments.
 
 ## Claude Code Cloud Architecture
 
-Claude Code cloud runs sessions in **Anthropic-managed VMs** (Ubuntu 24.04).
-Key facts:
+Claude Code cloud runs sessions in **Anthropic-managed VMs** (Ubuntu 24.04). Key facts:
 
 - Each session gets an isolated VM with your repo cloned
 - `gh` is **not pre-installed** — must be installed via setup script
 - Git auth is handled by a **dedicated proxy** (not a token in the sandbox)
-- The git client uses a scoped credential that the proxy translates to your
-  actual GitHub auth token
+- The git client uses a scoped credential that the proxy translates to your actual GitHub auth token
 - `gh` CLI needs its own auth via the `GH_TOKEN` environment variable
 - The proxy restricts `git push` to the current working branch only
 
@@ -37,9 +34,7 @@ Key facts:
 
 ### What's Pre-installed
 
-The universal image includes Python, Node.js, Ruby, PHP, Java, Go, Rust,
-C++, PostgreSQL 16, Redis 7.0, and common package managers. Run
-`check-tools` to see the full list.
+The universal image includes Python, Node.js, Ruby, PHP, Java, Go, Rust, C++, PostgreSQL 16, Redis 7.0, and common package managers. Run `check-tools` to see the full list.
 
 **Not pre-installed:** `gh` CLI. Install it in your setup script.
 
@@ -47,8 +42,7 @@ C++, PostgreSQL 16, Redis 7.0, and common package managers. Run
 
 ## GitHub Copilot Agent Architecture
 
-GitHub Copilot coding agents (including Claude as a Copilot agent) run in
-**GitHub-managed containers** using GitHub Actions infrastructure.
+GitHub Copilot coding agents (including Claude as a Copilot agent) run in **GitHub-managed containers** using GitHub Actions infrastructure.
 
 - `gh` **is pre-installed** and available immediately
 - `GITHUB_TOKEN` is provided automatically via `secrets.GITHUB_TOKEN`
@@ -71,8 +65,7 @@ For Claude Code cloud, you provide your own PAT:
 | Where to set | Claude Code → Environment Settings → Environment Variables |
 | Variable name | `GH_TOKEN` |
 
-**Security:** The PAT is stored in Anthropic's environment settings and
-injected into the VM at session start. It is not committed to the repo.
+**Security:** The PAT is stored in Anthropic's environment settings and injected into the VM at session start. It is not committed to the repo.
 
 ### GITHUB_TOKEN — Copilot Agent
 
@@ -128,20 +121,16 @@ Claude Code cloud routes all GitHub traffic through a **dedicated proxy**.
 ### How it works
 
 - The git client inside the sandbox uses a scoped credential
-- The proxy verifies this credential and translates it to your actual
-  GitHub token
+- The proxy verifies this credential and translates it to your actual GitHub token
 - `git push` is restricted to the current working branch
 - `git clone`, `git fetch`, and `git pull` work transparently
 
 ### Impact on gh
 
-The proxy handles git operations, but `gh` makes its own HTTP requests to
-the GitHub API. This means:
+The proxy handles git operations, but `gh` makes its own HTTP requests to the GitHub API. This means:
 
-1. `gh` needs its own token (`GH_TOKEN`) — it doesn't share the git proxy
-   credential
-2. `gh` may not auto-detect the repo from git remotes due to the proxy
-   configuration — use the `-R owner/repo` flag
+1. `gh` needs its own token (`GH_TOKEN`) — it doesn't share the git proxy credential
+2. `gh` may not auto-detect the repo from git remotes due to the proxy configuration — use the `-R owner/repo` flag
 
 ```bash
 # Instead of:
@@ -170,9 +159,7 @@ Key allowed domains for gh (in Limited mode):
 - `raw.githubusercontent.com`, `objects.githubusercontent.com`
 - `npm.pkg.github.com`, `ghcr.io`
 
-**Note:** Setup scripts that install packages (like `apt install gh`) need
-network access. The default "Limited" mode allows this since Ubuntu package
-repos (`archive.ubuntu.com`, `security.ubuntu.com`) are in the allowlist.
+**Note:** Setup scripts that install packages (like `apt install gh`) need network access. The default "Limited" mode allows this since Ubuntu package repos (`archive.ubuntu.com`, `security.ubuntu.com`) are in the allowlist.
 
 ### Copilot Agent
 
@@ -216,8 +203,7 @@ Or use a SessionStart hook:
 
 **Cause:** `GH_TOKEN` not set in the environment.
 
-**Fix (Claude Code cloud):** Add `GH_TOKEN=ghp_...` to Environment Settings →
-Environment Variables.
+**Fix (Claude Code cloud):** Add `GH_TOKEN=ghp_...` to Environment Settings → Environment Variables.
 
 **Fix (Copilot agent):** Ensure the workflow step has:
 ```yaml
@@ -259,18 +245,15 @@ gh pr create -R codervisor/myrepo --title "..."
 
 ### gh works but git push fails
 
-**Cause:** In Claude Code cloud, git push is restricted to the current
-working branch by the proxy.
+**Cause:** In Claude Code cloud, git push is restricted to the current working branch by the proxy.
 
-**Fix:** Ensure you're pushing to the branch Claude Code checked out.
-You cannot push to other branches.
+**Fix:** Ensure you're pushing to the branch Claude Code checked out. You cannot push to other branches.
 
 ### Setup script fails to install gh
 
 **Cause:** Network access is disabled or too restrictive.
 
-**Fix:** Set network access to "Limited" (default) or "Full" in
-environment settings. The default allowlist includes Ubuntu package repos.
+**Fix:** Set network access to "Limited" (default) or "Full" in environment settings. The default allowlist includes Ubuntu package repos.
 
 ### Rate limiting
 

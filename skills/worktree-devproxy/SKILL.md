@@ -25,9 +25,7 @@ metadata:
 
 # worktree-devproxy
 
-One shared Traefik + one compose stack per git worktree. Each instance is
-reachable at `http://<worktree>.<repo>.localhost:8000`; a laptop reaches it
-through a single SSH tunnel. Nothing else touches the host network.
+One shared Traefik + one compose stack per git worktree. Each instance is reachable at `http://<worktree>.<repo>.localhost:8000`; a laptop reaches it through a single SSH tunnel. Nothing else touches the host network.
 
 ```
 laptop browser → SSH tunnel (:8000) → Traefik (127.0.0.1 only)
@@ -36,41 +34,26 @@ laptop browser → SSH tunnel (:8000) → Traefik (127.0.0.1 only)
 
 Invariants (don't trade these away when adapting):
 
-1. **No host ports** except Traefik's own `127.0.0.1:8000` (web) and
-   `127.0.0.1:8080` (dashboard/API). Everything else flows over the shared
-   external docker network `devproxy`.
-2. **Routing is Host-header only** — `*.localhost` resolves to loopback by
-   OS convention, so there is no DNS, no TLS, and no port allocation table.
-3. **Worktree isolation is `COMPOSE_PROJECT_NAME`** (set by `.envrc` via
-   direnv): independent networks, volumes, and container names per worktree.
+1. **No host ports** except Traefik's own `127.0.0.1:8000` (web) and `127.0.0.1:8080` (dashboard/API). Everything else flows over the shared external docker network `devproxy`.
+2. **Routing is Host-header only** — `*.localhost` resolves to loopback by OS convention, so there is no DNS, no TLS, and no port allocation table.
+3. **Worktree isolation is `COMPOSE_PROJECT_NAME`** (set by `.envrc` via direnv): independent networks, volumes, and container names per worktree.
 
 ## One-time machine setup
 
-Prerequisites: `docker` (with compose plugin), `git`, `direnv` (hook it
-into the shell rc).
+Prerequisites: `docker` (with compose plugin), `git`, `direnv` (hook it into the shell rc).
 
-1. Copy [`references/dev-proxy.docker-compose.yml`](references/dev-proxy.docker-compose.yml)
-   to `~/dev-proxy/docker-compose.yml`, `mkdir -p ~/dev-proxy/dynamic`,
-   and `docker compose up -d` (run with `COMPOSE_PROJECT_NAME=dev-proxy`
-   or from a direnv-free shell — a stray project name from another repo's
-   `.envrc` creates a *second* Traefik that loses the :8000 bind race).
-   Two flags in it are load-bearing, learned the hard way:
+1. Copy [`references/dev-proxy.docker-compose.yml`](references/dev-proxy.docker-compose.yml) to `~/dev-proxy/docker-compose.yml`, `mkdir -p ~/dev-proxy/dynamic`, and `docker compose up -d` (run with `COMPOSE_PROJECT_NAME=dev-proxy` or from a direnv-free shell — a stray project name from another repo's `.envrc` creates a *second* Traefik that loses the :8000 bind race). Two flags in it are load-bearing, learned the hard way:
    - `image: traefik:v3` (not an old pin) — Traefik ≤ v3.3 hardcodes
      Docker API 1.24, which Docker Engine 29+ rejects outright.
    - `--providers.docker.network=devproxy` — app containers sit on
      `[default, devproxy]`; without the pin Traefik dials the default
      network's IP it can't reach and every request 504s.
-2. Install [`scripts/wt`](scripts/wt) and
-   [`scripts/devproxy-route`](scripts/devproxy-route) to `~/bin/`,
-   `chmod +x`, make sure `~/bin` is on PATH.
-3. Verify: `curl -s --noproxy '*' localhost:8080/api/version` returns the
-   Traefik version; `curl localhost:8000` returns 404 (no routes yet —
-   correct).
+2. Install [`scripts/wt`](scripts/wt) and [`scripts/devproxy-route`](scripts/devproxy-route) to `~/bin/`, `chmod +x`, make sure `~/bin` is on PATH.
+3. Verify: `curl -s --noproxy '*' localhost:8080/api/version` returns the Traefik version; `curl localhost:8000` returns 404 (no routes yet — correct).
 
 ## Onboarding a repo
 
-Four pieces per repo, all **committed** — worktrees are created from HEAD,
-so uncommitted setup files silently don't propagate and `wt new` breaks.
+Four pieces per repo, all **committed** — worktrees are created from HEAD, so uncommitted setup files silently don't propagate and `wt new` breaks.
 
 1. **`.envrc`** at the repo root:
 
@@ -87,12 +70,9 @@ so uncommitted setup files silently don't propagate and `wt new` breaks.
    fi
    ```
 
-   Then `direnv allow`. (Don't apex-special-case `COMPOSE_PROJECT_NAME`
-   the same way on an already-onboarded repo — renaming the project
-   orphans its existing volumes, including the database.)
+   Then `direnv allow`. (Don't apex-special-case `COMPOSE_PROJECT_NAME` the same way on an already-onboarded repo — renaming the project orphans its existing volumes, including the database.)
 
-2. **`docker-compose.yml`** — the HTTP-serving service gets Traefik labels
-   and **no `ports:` section**; the file joins the external network:
+2. **`docker-compose.yml`** — the HTTP-serving service gets Traefik labels and **no `ports:` section**; the file joins the external network:
 
    ```yaml
    services:
@@ -108,15 +88,9 @@ so uncommitted setup files silently don't propagate and `wt new` breaks.
        external: true
    ```
 
-   Internal services (db, redis) keep only the default network and lose
-   any host-port publishing too. Name volumes with **plain aliases** (no
-   explicit `name:`) so compose prefixes them per project — that *is* the
-   per-worktree data isolation. Give an explicit shared `name:` only to
-   caches where cross-worktree reuse is the point (cargo registry,
-   sccache, pnpm store).
+   Internal services (db, redis) keep only the default network and lose any host-port publishing too. Name volumes with **plain aliases** (no explicit `name:`) so compose prefixes them per project — that *is* the per-worktree data isolation. Give an explicit shared `name:` only to caches where cross-worktree reuse is the point (cargo registry, sccache, pnpm store).
 
-3. **Server must bind `0.0.0.0`** inside the container, and framework
-   Host-checking must admit `.localhost`:
+3. **Server must bind `0.0.0.0`** inside the container, and framework Host-checking must admit `.localhost`:
    - **Vite**: `server.allowedHosts: ['.localhost']`; gate `host` on an
      env var (`process.env.VITE_HOST ?? 'localhost'`) so bare host-side
      `pnpm dev` is unchanged; if HMR runs through the proxy, wire
@@ -128,14 +102,9 @@ so uncommitted setup files silently don't propagate and `wt new` breaks.
      keep an internal reverse proxy (Caddy/nginx) as the labeled service.
    - Rust/Go binaries: pass `--host 0.0.0.0` or the bind env var.
 
-4. **CLAUDE.md** — append a section telling agents the instance is at
-   `http://$DEV_HOST:8000` and verifiable with
-   `curl -s -H "Host: $DEV_HOST" localhost:8000`.
+4. **CLAUDE.md** — append a section telling agents the instance is at `http://$DEV_HOST:8000` and verifiable with `curl -s -H "Host: $DEV_HOST" localhost:8000`.
 
-Useful patterns from onboarded repos: single-container pnpm monorepo
-(arbor), build-then-serve with a one-shot builder service +
-`service_completed_successfully` dependency (duhem), full multi-service
-stack with an internal Caddy edge carrying the Traefik labels (onsager).
+Useful patterns from onboarded repos: single-container pnpm monorepo (arbor), build-then-serve with a one-shot builder service + `service_completed_successfully` dependency (duhem), full multi-service stack with an internal Caddy edge carrying the Traefik labels (onsager).
 
 ## Daily usage
 
@@ -159,16 +128,9 @@ Host devbox
 
 ## Host-run stacks (no containers)
 
-When the containerized per-worktree stack is too slow as the primary loop
-(first build compiles the whole workspace into container-private volumes),
-a repo's native dev runner (`just dev`, `pnpm dev`, …) can join the same
-routing via Traefik's **file provider** — already enabled by the machine
-setup above. Pattern (reference implementation: onsager `just dev`,
-onsager-ai/onsager#579):
+When the containerized per-worktree stack is too slow as the primary loop (first build compiles the whole workspace into container-private volumes), a repo's native dev runner (`just dev`, `pnpm dev`, …) can join the same routing via Traefik's **file provider** — already enabled by the machine setup above. Pattern (reference implementation: onsager `just dev`, onsager-ai/onsager#579):
 
-1. **Auto-allocate ports, canonical-first**: try the service's usual port,
-   fall back to a random free one so parallel worktree stacks never
-   collide. Bash picker:
+1. **Auto-allocate ports, canonical-first**: try the service's usual port, fall back to a random free one so parallel worktree stacks never collide. Bash picker:
 
    ```bash
    pick_port() {
@@ -180,22 +142,11 @@ onsager-ai/onsager#579):
    }
    ```
 
-2. **Register the front door only**: `devproxy-route up <port>` writes
-   `~/dev-proxy/dynamic/$COMPOSE_PROJECT_NAME.yml` mapping
-   `Host($DEV_HOST)` → `http://host.docker.internal:<port>`. Point it at
-   the one process that fronts the rest (e.g. Vite with a dev proxy for
-   `/api`); backends only need to be reachable *by that process*, not by
-   Traefik. `devproxy-route down` in the runner's EXIT trap.
+2. **Register the front door only**: `devproxy-route up <port>` writes `~/dev-proxy/dynamic/$COMPOSE_PROJECT_NAME.yml` mapping `Host($DEV_HOST)` → `http://host.docker.internal:<port>`. Point it at the one process that fronts the rest (e.g. Vite with a dev proxy for `/api`); backends only need to be reachable *by that process*, not by Traefik. `devproxy-route down` in the runner's EXIT trap.
 
-3. **Same framework rules as containers**: the fronting process must bind
-   `0.0.0.0` (host-gateway traffic arrives on a non-loopback interface),
-   allow `.localhost` hosts, and aim its HMR websocket at the proxy port
-   (`clientPort: 8000`) when reached through Traefik.
+3. **Same framework rules as containers**: the fronting process must bind `0.0.0.0` (host-gateway traffic arrives on a non-loopback interface), allow `.localhost` hosts, and aim its HMR websocket at the proxy port (`clientPort: 8000`) when reached through Traefik.
 
-Containerized (`wt new`) and host-run stacks coexist behind one Traefik —
-routing is per-hostname, so each worktree independently picks whichever
-mode fits. Don't run both modes for the *same* worktree at once: two
-routers with an identical Host rule is a coin-flip.
+Containerized (`wt new`) and host-run stacks coexist behind one Traefik — routing is per-hostname, so each worktree independently picks whichever mode fits. Don't run both modes for the *same* worktree at once: two routers with an identical Host rule is a coin-flip.
 
 ## Troubleshooting
 

@@ -48,8 +48,7 @@ Skip when:
 1. **CLI on PATH.** `which railway` should resolve. If not, install: `npm install -g @railway/cli` (or use the official installer at https://docs.railway.com/guides/cli). Minimum version: 4.x (this skill assumes the modern subcommand layout — `service list`, `deployment list`, `logs --filter`, `--json` on most commands).
 2. **Auth via env var.** `echo "${RAILWAY_TOKEN:0:8}…"` should print a non-empty prefix. The CLI reads `RAILWAY_TOKEN` directly — **do not** run `railway login` in agent sessions. Two token shapes exist:
    - **Account / personal token** (created at https://railway.com/account/tokens) — works across every workspace, project, and environment the user has access to. Required for `railway list`, `railway link --workspace`, and any cross-project view.
-   - **Project token** (created in a project's Settings → Tokens, scoped to one project+environment) — works for that single project/env. `railway list` and other workspace-level commands return `Unauthorized` with this kind; `railway status`, `railway logs`, `railway up`, `railway variable …` all work.
-   First call that returns `Unauthorized` / `Invalid RAILWAY_TOKEN` is the signal to ask the user which shape they configured and whether they need to widen scope.
+   - **Project token** (created in a project's Settings → Tokens, scoped to one project+environment) — works for that single project/env. `railway list` and other workspace-level commands return `Unauthorized` with this kind; `railway status`, `railway logs`, `railway up`, `railway variable …` all work. First call that returns `Unauthorized` / `Invalid RAILWAY_TOKEN` is the signal to ask the user which shape they configured and whether they need to widen scope.
 3. **No interactive prompts.** Always pass explicit `--project / --service / --environment` flags (and `--json`, `-y`, `--ci` where they exist) instead of relying on linked state. Linked state is a `.railway/` directory and survives across CLI calls, but in fresh agent sessions there is no link yet — set the scope every call until the user explicitly asks to link.
 
 ## Operating procedure
@@ -324,13 +323,7 @@ You forgot `--ci`. The default mode attaches a live pager that doesn't exit. Kil
 
 ## Onsager-bundled scripts (optional, repo-specific)
 
-The `scripts/` directory ships three shell wrappers tuned for the
-`onsager-ai/onsager` monorepo. They are pinned to that repo's
-deployment shape (service name `onsager`, env var
-`ONSAGER_RAILWAY_TOKEN`, production URL
-`https://onsager-production.up.railway.app`, `justfile` targets).
-**Repos other than Onsager can ignore these or fork them**; the
-generic operating procedure above covers every project.
+The `scripts/` directory ships three shell wrappers tuned for the `onsager-ai/onsager` monorepo. They are pinned to that repo's deployment shape (service name `onsager`, env var `ONSAGER_RAILWAY_TOKEN`, production URL `https://onsager-production.up.railway.app`, `justfile` targets). **Repos other than Onsager can ignore these or fork them**; the generic operating procedure above covers every project.
 
 When in the Onsager repo:
 
@@ -340,26 +333,11 @@ When in the Onsager repo:
 | Diagnose failure | `sh scripts/debug.sh [service]` |
 | Verify live deploy | `sh scripts/smoke.sh [url]` |
 
-- **`preflight.sh`** — runs before any deploy or while triaging a build
-  failure. Checks lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) are
-  tracked in git, Dockerfile COPY sources resolve, Railway vars don't
-  leak `localhost`, and `DATABASE_URL` points at the Railway Postgres
-  plugin. Exits non-zero on any failure; skips Railway variable
-  checks if `ONSAGER_RAILWAY_TOKEN` is not set.
-- **`debug.sh [service]`** — one-shot diagnostics for a failed or
-  stuck deploy: service status, build logs (40 lines), deploy/runtime
-  logs (40), error-only logs (20), HTTP 4xx/5xx (10), env vars.
-  Default service `onsager`. Requires `ONSAGER_RAILWAY_TOKEN`.
-- **`smoke.sh [base_url]`** — post-deploy verification: API checks
-  via `curl` (`/api/health`, `/api/auth/me`, `/api/nodes`,
-  `/api/sessions`) and optional UI checks via `agent-browser` (`/`,
-  `/sessions`, `/nodes`, `/settings`). Default URL
-  `https://onsager-production.up.railway.app`. UI checks skip
-  gracefully if `agent-browser` is not on PATH.
+- **`preflight.sh`** — runs before any deploy or while triaging a build failure. Checks lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) are tracked in git, Dockerfile COPY sources resolve, Railway vars don't leak `localhost`, and `DATABASE_URL` points at the Railway Postgres plugin. Exits non-zero on any failure; skips Railway variable checks if `ONSAGER_RAILWAY_TOKEN` is not set.
+- **`debug.sh [service]`** — one-shot diagnostics for a failed or stuck deploy: service status, build logs (40 lines), deploy/runtime logs (40), error-only logs (20), HTTP 4xx/5xx (10), env vars. Default service `onsager`. Requires `ONSAGER_RAILWAY_TOKEN`.
+- **`smoke.sh [base_url]`** — post-deploy verification: API checks via `curl` (`/api/health`, `/api/auth/me`, `/api/nodes`, `/api/sessions`) and optional UI checks via `agent-browser` (`/`, `/sessions`, `/nodes`, `/settings`). Default URL `https://onsager-production.up.railway.app`. UI checks skip gracefully if `agent-browser` is not on PATH.
 
-These scripts demonstrate the wrapping pattern; another repo
-adopting this skill should fork the directory and re-shape the
-script bodies for its own deployment.
+These scripts demonstrate the wrapping pattern; another repo adopting this skill should fork the directory and re-shape the script bodies for its own deployment.
 
 ## Related skills
 

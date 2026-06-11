@@ -4,8 +4,7 @@ Comprehensive guide to versioning in a polyglot Rust+Node.js monorepo.
 
 ## Single Source of Truth
 
-The root `package.json` version is the **canonical source**. All other version
-declarations are derived from it through automated scripts.
+The root `package.json` version is the **canonical source**. All other version declarations are derived from it through automated scripts.
 
 ```
 root package.json (version: "0.2.15")
@@ -102,8 +101,7 @@ package.json: 0.2.15
        └──► Cargo.toml             → 0.2.15 (no pre-release in Cargo)
 ```
 
-Note: Cargo.toml stays at the base version because Cargo's pre-release handling
-differs from npm. For dev builds, only npm packages get the `-dev.X` suffix.
+Note: Cargo.toml stays at the base version because Cargo's pre-release handling differs from npm. For dev builds, only npm packages get the `-dev.X` suffix.
 
 ### CI: Production Release (GitHub release)
 
@@ -161,8 +159,7 @@ writeFileSync(cargoPath, updated);
 ### Limitations
 
 - Only updates the first `version = "..."` line matching the pattern
-- For Cargo workspaces with multiple crates, target the workspace `Cargo.toml`
-  and use `workspace.package.version`
+- For Cargo workspaces with multiple crates, target the workspace `Cargo.toml` and use `workspace.package.version`
 - Pre-release identifiers are valid in Cargo but may cause issues with crates.io
 
 ### Recommended Approach

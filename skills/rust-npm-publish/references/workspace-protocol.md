@@ -15,8 +15,7 @@ pnpm workspaces use the `workspace:` protocol for internal dependencies:
 }
 ```
 
-During development, these resolve to the local workspace package — no npm
-resolution needed.
+During development, these resolve to the local workspace package — no npm resolution needed.
 
 ## Protocol Variants
 
@@ -104,8 +103,7 @@ This ensures safe restoration even if publishing fails partway through.
 
 ## Which Packages Need Replacement?
 
-Only packages being published to npm need workspace protocol replacement.
-Packages that are only used internally (never published) can keep `workspace:*`.
+Only packages being published to npm need workspace protocol replacement. Packages that are only used internally (never published) can keep `workspace:*`.
 
 Typical publishable packages:
 - CLI packages (`packages/cli`)
@@ -126,16 +124,13 @@ Typical publishable packages:
 
 ### devDependencies with workspace protocol
 
-`devDependencies` with workspace protocol also need replacement if the package
-is published. npm publishes the full `package.json` including devDependencies.
+`devDependencies` with workspace protocol also need replacement if the package is published. npm publishes the full `package.json` including devDependencies.
 
-However, since npm doesn't install devDependencies for consumers, this is
-lower risk. Still, replace them for correctness.
+However, since npm doesn't install devDependencies for consumers, this is lower risk. Still, replace them for correctness.
 
 ### Circular workspace dependencies
 
-If packages have circular workspace dependencies (A depends on B, B depends on A),
-ensure the replacement script handles both in a single pass, not sequentially.
+If packages have circular workspace dependencies (A depends on B, B depends on A), ensure the replacement script handles both in a single pass, not sequentially.
 
 ## Integration with Version Sync
 

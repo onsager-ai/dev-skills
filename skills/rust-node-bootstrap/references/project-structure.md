@@ -1,7 +1,6 @@
 # Project Structure Reference
 
-Full directory tree for a bootstrapped Rust+Node.js hybrid project with all
-forge skills configured.
+Full directory tree for a bootstrapped Rust+Node.js hybrid project with all forge skills configured.
 
 ## Complete Tree
 
@@ -73,29 +72,23 @@ GitHub Actions workflow files. Three workflows cover the full lifecycle:
 
 ### `specs/`
 
-Spec-Driven Development directory managed by LeanSpec. Contains markdown spec
-files that capture requirements, design decisions, and implementation plans.
+Spec-Driven Development directory managed by LeanSpec. Contains markdown spec files that capture requirements, design decisions, and implementation plans.
 
 ### `packages/`
 
-Node.js packages in the pnpm workspace. At minimum, the main CLI package that
-wraps the Rust binary. Can contain additional packages (SDK, shared utils, etc.).
+Node.js packages in the pnpm workspace. At minimum, the main CLI package that wraps the Rust binary. Can contain additional packages (SDK, shared utils, etc.).
 
 ### `rust/` or root-level Cargo
 
-Rust workspace containing one or more crates. Can be at root level (root `Cargo.toml`
-is the workspace) or nested in a `rust/` directory.
+Rust workspace containing one or more crates. Can be at root level (root `Cargo.toml` is the workspace) or nested in a `rust/` directory.
 
 ### `scripts/`
 
-TypeScript publish pipeline scripts. These are config-driven — they read
-`publish.config.ts` for project-specific values. Copy from forge templates.
+TypeScript publish pipeline scripts. These are config-driven — they read `publish.config.ts` for project-specific values. Copy from forge templates.
 
 ### `platform-packages/`
 
-Generated directories for platform-specific npm packages. Each contains a
-`package.json` with `os`/`cpu` fields and the compiled binary. Not committed
-to git — generated during the publish workflow.
+Generated directories for platform-specific npm packages. Each contains a `package.json` with `os`/`cpu` fields and the compiled binary. Not committed to git — generated during the publish workflow.
 
 ## Variations
 

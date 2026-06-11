@@ -20,9 +20,7 @@ metadata:
 
 # GitHub Integration
 
-Enable `gh` CLI access in Claude Code cloud and GitHub Copilot coding agent
-environments so agents can create PRs, manage issues, and interact with
-GitHub APIs.
+Enable `gh` CLI access in Claude Code cloud and GitHub Copilot coding agent environments so agents can create PRs, manage issues, and interact with GitHub APIs.
 
 ## When to Use This Skill
 
@@ -66,8 +64,7 @@ Need gh in local dev too?
 
 ### Claude Code Cloud (claude.ai/code)
 
-Claude Code cloud runs sessions in Anthropic-managed VMs. The `gh` CLI
-is **not pre-installed**. You need two things:
+Claude Code cloud runs sessions in Anthropic-managed VMs. The `gh` CLI is **not pre-installed**. You need two things:
 
 1. **Setup script** — installs `gh` when the session starts
 2. **`GH_TOKEN` env var** — authenticates `gh` with your GitHub PAT
@@ -81,8 +78,7 @@ In the Claude Code web UI: Environment Settings → Setup script:
 apt update && apt install -y gh
 ```
 
-Then add `GH_TOKEN` as an environment variable with your GitHub Personal
-Access Token (needs `repo` scope).
+Then add `GH_TOKEN` as an environment variable with your GitHub Personal Access Token (needs `repo` scope).
 
 #### Alternative: SessionStart Hook (repo-portable)
 
@@ -110,8 +106,7 @@ The `CLAUDE_CODE_REMOTE` check ensures it only runs in cloud sessions.
 
 #### Important: The `-R` Flag
 
-Due to the sandbox proxy, `gh` may not auto-detect the repo. Use the
-`-R owner/repo` flag:
+Due to the sandbox proxy, `gh` may not auto-detect the repo. Use the `-R owner/repo` flag:
 
 ```bash
 gh pr create -R codervisor/myrepo --title "..." --body "..."
@@ -120,8 +115,7 @@ gh issue list -R codervisor/myrepo
 
 ### GitHub Copilot Coding Agent
 
-Copilot coding agents use `.github/copilot-setup-steps.yml`. The `gh` CLI
-is pre-installed; you just need to authenticate it.
+Copilot coding agents use `.github/copilot-setup-steps.yml`. The `gh` CLI is pre-installed; you just need to authenticate it.
 
 Add this file at `.github/copilot-setup-steps.yml`:
 
@@ -142,8 +136,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-See `templates/copilot-setup-steps.yml` for a full template with
-dependency installation.
+See `templates/copilot-setup-steps.yml` for a full template with dependency installation.
 
 ## Setup Scripts vs SessionStart Hooks vs copilot-setup-steps
 
@@ -195,6 +188,4 @@ gh api repos/owner/repo/actions/runs
 npx skills add -g onsager-ai/dev-skills --skill github-integration -a claude-code -y
 ```
 
-Auto-activates when: user mentions "gh in cloud", "github integration",
-"setup script", "copilot setup steps", or `gh` auth failures in cloud
-environments.
+Auto-activates when: user mentions "gh in cloud", "github integration", "setup script", "copilot setup steps", or `gh` auth failures in cloud environments.
