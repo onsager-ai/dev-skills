@@ -11,11 +11,19 @@ services:
       - --entrypoints.web.address=:8000
       - --api.dashboard=true
       - --api.insecure=true
+      # Host-run dev stacks self-register by dropping route files in ./dynamic
+      # (see SKILL.md § Host-run stacks) — no containers required.
+      - --providers.file.directory=/dynamic
+      - --providers.file.watch=true
     ports:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/dynamic:ro
+    extra_hosts:
+      # Lets file-provider routes reach host-run services on Linux.
+      - host.docker.internal:host-gateway
     networks: [devproxy]
 
 networks:

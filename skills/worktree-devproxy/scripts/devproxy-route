@@ -1,0 +1,44 @@
+#!/bin/sh
+# devproxy-route up <port> | down — register/unregister a HOST-RUN dev
+# server with the devproxy Traefik (file provider), so a non-containerized
+# stack gets the same http://$DEV_HOST:8000 routing as a compose stack.
+#
+# Reads DEV_HOST + COMPOSE_PROJECT_NAME from the environment (direnv) and
+# DEVPROXY_DYNAMIC_DIR (default ~/dev-proxy/dynamic). `up` is a no-op with
+# a notice when either is missing, so callers can invoke it
+# unconditionally. Call `down` from the same trap that stops the stack.
+set -eu
+
+dir="${DEVPROXY_DYNAMIC_DIR:-$HOME/dev-proxy/dynamic}"
+name="${COMPOSE_PROJECT_NAME:-}"
+file="$dir/$name.yml"
+
+case "${1:-}" in
+  up)
+    port="${2:?usage: devproxy-route up <port>}"
+    if [ -z "${DEV_HOST:-}" ] || [ -z "$name" ] || [ ! -d "$dir" ]; then
+        echo "devproxy-route: skipped (need DEV_HOST + COMPOSE_PROJECT_NAME + $dir)" >&2
+        exit 0
+    fi
+    cat > "$file" <<EOF
+http:
+  routers:
+    $name:
+      rule: Host(\`$DEV_HOST\`)
+      service: $name
+  services:
+    $name:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:$port
+EOF
+    echo "devproxy-route: http://$DEV_HOST:8000 -> :$port" >&2
+    ;;
+  down)
+    [ -n "$name" ] && rm -f "$file"
+    ;;
+  *)
+    echo "usage: devproxy-route up <port> | down" >&2
+    exit 2
+    ;;
+esac
