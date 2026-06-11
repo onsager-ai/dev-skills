@@ -1,6 +1,6 @@
 ---
 name: issue-spec
-description: Create lean-spec style GitHub issues as specs for human-AI aligned implementation on the current repo. Use when asked to "create a spec", "write a spec issue", "spec this feature", "spec this", or when planning work that needs a specification before implementation. Follows the lean-spec SDD methodology — small focused specs (<2000 tokens), intent over implementation, context economy. Creates GitHub issues with Overview, Design, Plan, Test, Alignment, and Notes sections. Repo-specific area taxonomy, sister-skill names, custom body sections (e.g. Provider impact / Schema impact / Reach), and additional principles are overlaid by the consumer repo's CLAUDE.md and its `*-dev-process` / `*-pre-push` / `*-pr-lifecycle` sister skills — read those first when the repo isn't obvious.
+description: Create lean-spec style GitHub issues as specs for human-AI aligned implementation on the current repo. Use when asked to "create a spec", "write a spec issue", "spec this feature", "spec this", or when planning work that needs a specification before implementation. Follows the lean-spec SDD methodology — small focused specs (<2000 tokens), intent over implementation, context economy. Creates GitHub issues with Overview, Design, Plan, Test, Alignment, and Notes sections. Repo-specific area taxonomy, sister-skill names, custom body sections (e.g. Provider impact / Schema impact / Reach), and additional principles are overlaid by the consumer repo's CLAUDE.md and its `*-dev-process` sister skill — read those first when the repo isn't obvious. The `pre-push` and `pr-lifecycle` methodology is shared globally (installed from `onsager-ai/dev-skills`), like this skill.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git diff:*), Bash(git log:*), Bash(git show:*), mcp__github__issue_write, mcp__github__issue_read, mcp__github__list_issues, mcp__github__search_issues, mcp__github__sub_issue_write, mcp__github__get_label
 ---
 
@@ -11,7 +11,8 @@ Create GitHub issues as lean-spec style specifications for human-AI aligned impl
 This skill is the **repo-agnostic methodology** half of the contract. Each consumer repo overlays its own delta in two places:
 
 - **Repo CLAUDE.md** — names the GitHub slug (`codervisor/lean-spec`, `onsager-ai/onsager`, `onsager-ai/duhem`, …) and any repo-specific spec principles (e.g. Onsager's Reach + seam rule, lean-spec's provider-agnostic core + i18n, Duhem's worked-example + schema-impact).
-- **Sister skills** — `<repo>-dev-process` carries the area-label taxonomy, the spec-vs-`trivial` gate, and the SDD loop wiring; `<repo>-pre-push` carries pre-push gates; `<repo>-pr-lifecycle` carries the post-push workflow (including any `pr-spec-sync` automation or the lack of it).
+- **`<repo>-dev-process` sister skill** — carries the area-label taxonomy, the spec-vs-`trivial` gate, the SDD loop wiring, and the repo's pre-push check gate + CI-failure patterns.
+- **Global `pre-push` / `pr-lifecycle` skills** — the shared pre-push and post-push methodology (installed from `onsager-ai/dev-skills`). The consumer repo overlays only its gate command, collision patterns, and any `pr-spec-sync` automation via CLAUDE.md / `<repo>-dev-process`; the skills themselves are not per-repo.
 
 When in doubt about the target repo, run `git remote -v` and read the repo's `CLAUDE.md` and its `*-dev-process` skill before drafting the spec body.
 
@@ -61,7 +62,7 @@ Skip when:
 - A one-line bug fix with an obvious reproduction. Just open a PR with `Fixes #existing`.
 - The feature already has a spec issue — extend that spec, don't create another.
 
-**Default is spec, not trivial.** If invocation of this skill is itself the decision — the user said "spec this" or the change clearly isn't a typo/one-liner — proceed straight to Discover. Do not stop to confirm spec-vs-`trivial`. The "Skip when" list is a self-veto for unambiguously trivial diffs; everything else is a spec by default. `trivial` is a sparingly-used escape hatch (see the repo's `*-dev-process` and `*-pre-push` sister skills), not a 50/50 fork to ask about.
+**Default is spec, not trivial.** If invocation of this skill is itself the decision — the user said "spec this" or the change clearly isn't a typo/one-liner — proceed straight to Discover. Do not stop to confirm spec-vs-`trivial`. The "Skip when" list is a self-veto for unambiguously trivial diffs; everything else is a spec by default. `trivial` is a sparingly-used escape hatch (see the repo's `*-dev-process` sister skill and the global `pre-push` skill), not a 50/50 fork to ask about.
 
 ## Setup
 
@@ -210,7 +211,7 @@ open  →  closed
 - **open**: Spec exists, work may be in flight. Open questions, if any, are resolved in the issue thread.
 - **closed**: All plan items done, tests passing. PR merge with `Closes #N` closes it automatically.
 
-No status labels are applied — the issue's open/closed state plus the comment thread is the audit trail. PRs cross-link via `Closes #N` / `Part of #N` in the PR body; the repo's `*-pr-lifecycle` sister skill covers how Plan checkboxes get ticked as `Part of` PRs land.
+No status labels are applied — the issue's open/closed state plus the comment thread is the audit trail. PRs cross-link via `Closes #N` / `Part of #N` in the PR body; the global `pr-lifecycle` skill covers how Plan checkboxes get ticked as `Part of` PRs land.
 
 Since "in flight" isn't a label anymore, the `scripts/` helpers below reconstruct that view on demand — they read the open state *plus* linked PRs so you can see which open specs are actually being worked.
 
@@ -253,17 +254,16 @@ Once the spec is ready to implement:
 
 1. Create a branch referencing the issue: `claude/spec-<N>-<slug>` (Claude-owned) or any name (human-owned).
 2. Follow the SDD loop in the repo's `*-dev-process` sister skill.
-3. Pre-push via the repo's `*-pre-push` sister skill (which typically includes a spec-link check plus the repo's typecheck / lint / test gates).
+3. Pre-push via the global `pre-push` skill (spec-link check plus the repo's check gate, named in its CLAUDE.md / `*-dev-process`).
 4. PR body must include `Closes #N` (slice complete) or `Part of #N` (scaffolding).
-5. On merge GitHub auto-closes `Closes #N` issues; the merger ticks Plan items on `Part of #N` parents manually. See `*-pr-lifecycle`.
+5. On merge GitHub auto-closes `Closes #N` issues; the merger ticks Plan items on `Part of #N` parents manually. See `pr-lifecycle`.
 
 ## Repo-agnostic by construction; consumer overlay is required
 
 This skill is the **methodology**; it intentionally does not name a repo, an area taxonomy, or a set of cross-cutting labels. Every consumer repo overlays those via:
 
 - Its `CLAUDE.md` (repo-specific principles, target GitHub slug, always-spec surfaces).
-- Its `*-dev-process` sister skill (area-label taxonomy, spec-vs-`trivial` gate, SDD loop).
-- Its `*-pre-push` and `*-pr-lifecycle` sister skills (which gates run pre-push and which automation runs post-push).
+- Its `*-dev-process` sister skill (area-label taxonomy, spec-vs-`trivial` gate, SDD loop, the repo's pre-push check gate + CI-failure patterns that the global `pre-push` / `pr-lifecycle` skills read).
 - Optionally an additional product spec doc (e.g. `docs/<product>-spec.md`, an architecture ADR set) that the repo's CLAUDE.md points at.
 
 Treat reading those as part of step 1 (Discover). Don't draft a spec without having loaded the consumer repo's overlay context first — a spec that names the wrong area label, misses a required section, or proposes something the repo's seam / schema / provider rule forbids is a spec the human has to rewrite.
@@ -275,7 +275,7 @@ Treat reading those as part of step 1 (Discover). Don't draft a spec without hav
 | [references/spec-format.md](references/spec-format.md) | Always — section-by-section guide with worked examples    |
 | Repo's `CLAUDE.md`                                     | Always — repo-specific principles + always-spec surfaces  |
 | Repo's `*-dev-process` sister skill                    | Always — area-label taxonomy + spec-vs-`trivial` gate     |
-| Repo's `*-pr-lifecycle` sister skill                   | When publishing — does the repo automate `pr-spec-sync`?  |
+| `pr-lifecycle` (global)                                | When publishing — post-push workflow; the repo's CLAUDE.md says whether it automates `pr-spec-sync`. |
 
 ## Scripts
 

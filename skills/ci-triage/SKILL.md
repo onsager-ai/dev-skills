@@ -1,13 +1,13 @@
 ---
 name: ci-triage
-description: Triage failed CI runs on a GitHub-Actions–driven repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with the consumer repo's `<repo>-pr-lifecycle` skill (PR-side CI triage) and the `web-testing` skill (invoked for `e2e` failures).
+description: Triage failed CI runs on a GitHub-Actions–driven repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with the global `pr-lifecycle` skill (PR-side CI triage) and the `web-testing` skill (invoked for `e2e` failures).
 ---
 
 # ci-triage
 
-Shared logic for classifying a failed CI workflow run and recording the outcome. Used by humans (or Claude in an interactive session) when triaging a red `main` workflow or a red check on an open PR — the latter via the consumer repo's `<repo>-pr-lifecycle` skill (e.g. `onsager-pr-lifecycle`, `lean-spec-pr-lifecycle`, `duhem-pr-lifecycle`).
+Shared logic for classifying a failed CI workflow run and recording the outcome. Used by humans (or Claude in an interactive session) when triaging a red `main` workflow or a red check on an open PR — the latter via the global `pr-lifecycle` skill, whose CI-triage section delegates the taxonomy here.
 
-This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and the issue template. Workflow-specific reproduction steps live in the consumer repo's `<repo>-pr-lifecycle` skill (for build-tool-specific detail) and in `web-testing` (for e2e).
+This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and the issue template. Repo-specific reproduction steps and failure patterns live in the consumer repo's CLAUDE.md / `<repo>-dev-process` (read by `pr-lifecycle`), and `e2e` classification is delegated to `web-testing`.
 
 ## Taxonomy
 
@@ -75,7 +75,7 @@ Keep the excerpt tight. Dumping the full log helps nobody.
 
 ## Reproducing locally
 
-A human invoking this skill via the consumer repo's `<repo>-pr-lifecycle` skill should reproduce before filing, using the commands in that skill's CI-triage section. For a `main` failure caught from outside a PR, check out `main` at the suspect SHA and run the same commands locally before filing.
+Someone invoking this skill via the global `pr-lifecycle` skill should reproduce before filing, using the repo's check gate (named in its CLAUDE.md / `<repo>-dev-process`). For a `main` failure caught from outside a PR, check out `main` at the suspect SHA and run the same commands locally before filing.
 
 For `e2e` failures specifically, delegate classification to [`web-testing`'s triage mode](../web-testing/SKILL.md) — it handles regression-vs-flake for browser-driven tests (the ambiguous case).
 
@@ -108,5 +108,5 @@ One of those alone is not enough. A deterministic regression can pass on the pri
 
 | Surface | Role |
 |---------|------|
-| `<repo>-pr-lifecycle` (consumer-repo skill, e.g. `onsager-pr-lifecycle`) | Interactive caller; humans use this when triaging a red PR check. |
+| [`pr-lifecycle`](../pr-lifecycle/SKILL.md) (global) | Interactive caller; its CI-triage section delegates the taxonomy here when triaging a red PR check. |
 | [`web-testing`](../web-testing/SKILL.md) | Delegated to for `e2e` workflow classification. |
