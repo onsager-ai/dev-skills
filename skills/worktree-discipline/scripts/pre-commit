@@ -1,0 +1,33 @@
+#!/bin/sh
+# Machine-global pre-commit (git config --global core.hooksPath ~/.githooks).
+# One copy for every repo on this machine — no per-repo duplication.
+#
+# 1. Worktree discipline, scoped to repos onboarded to the worktree/devproxy
+#    flow (marker: committed .envrc exporting DEV_HOST):
+#      - direct commits to main/master are blocked for everyone
+#      - agents (CLAUDECODE=1) are also blocked from committing in the main
+#        checkout — they work in worktrees: `wt new <branch>`
+#    Human escape hatch: ALLOW_MAIN_COMMIT=1 git commit ...  (or --no-verify)
+# 2. Delegates to the repo's own committed .githooks/pre-commit, if any,
+#    so repo-specific checks (e.g. onsager's migration sequence) still run.
+set -e
+
+top=$(git rev-parse --show-toplevel)
+
+if [ "${ALLOW_MAIN_COMMIT:-0}" != "1" ] \
+   && [ -f "$top/.envrc" ] && grep -q '^export DEV_HOST=' "$top/.envrc"; then
+    branch=$(git symbolic-ref --quiet --short HEAD || echo detached)
+    case "$branch" in
+        main|master)
+            echo "pre-commit: direct commits to $branch are blocked — use: wt new <branch>" >&2
+            exit 1 ;;
+    esac
+    if [ -n "${CLAUDECODE:-}" ] && [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ]; then
+        echo "pre-commit: agents must work in a worktree, not the main checkout — use: wt new <branch>" >&2
+        exit 1
+    fi
+fi
+
+if [ -x "$top/.githooks/pre-commit" ]; then
+    exec "$top/.githooks/pre-commit" "$@"
+fi
