@@ -144,10 +144,10 @@ Add an **Alignment** section to the issue body (this extends lean-spec for human
 ## Alignment
 
 ### Human decides
-- [ ] Architectural tradeoffs, scope, UX, go/no-go
+- [ ] Only items that cross a named boundary — say which one
 
 ### AI implements
-- [ ] Concrete code tasks tied to Plan items
+- [ ] Everything else, including reversible technical calls — state the call, don't ask
 
 ### Open questions
 > Items that block AI implementation until a human decides
@@ -155,10 +155,12 @@ Add an **Alignment** section to the issue body (this extends lean-spec for human
 
 **Rules:**
 
-- Every Plan item maps to either "Human decides" or "AI implements"
-- If an item requires both, split it — the decision part is human, the execution is AI
+- **The default is "AI implements".** An item goes under "Human decides" only when you can name the specific boundary it crosses. If you cannot name one, it is not a human decision — put it under "AI implements", state the call in the line itself, and proceed.
+- **The boundary is the operator's, not this skill's.** Different operators authorize differently: one delegates merges, another reviews everything, another gates on spend. This skill does not define where the line sits — it requires that a line be *named* before work is routed across it. Consult whatever the repo or the operator declares (a rules file, a mandate roster, a CONTRIBUTING note); if nothing is declared, ask once for the boundary rather than assuming a conservative one.
+- Escalating is free for the author and expensive for the human, so the pressure runs one way. "Human decides" is the exceptional branch and should read like one — a spec whose Alignment section is mostly human items is a spec that has not been thought through.
+- If an item requires both a decision and execution, split it — but only if the decision half names a boundary. Otherwise it is one AI item.
 - Open questions use `>` blockquotes so they're visually distinct
-- Once a human answers a question (via issue comment), update the Alignment section
+- **Reconciliation has an owner: whoever asked the question.** When a human answers — in an issue comment, a PR review, or a chat — update the Alignment section in the same sitting. An answered question left unchecked makes the backlog lie about what is blocked, and downstream tooling that routes by issue state cannot see comments.
 
 ### 4. Validate
 
@@ -172,6 +174,7 @@ Before creating the issue, self-check:
 - [ ] Test items map to Plan items
 - [ ] Any repo-specific required section (e.g. `## Provider impact`, `## Schema impact`) is present, or the spec provably doesn't touch that surface
 - [ ] Human/AI boundaries are explicit — no "figure it out" items
+- [ ] Every "Human decides" item names the boundary it crosses; anything that cannot is an "AI implements" item with the call stated
 - [ ] No duplicate of an existing issue
 - [ ] Dependencies are referenced by issue number
 
