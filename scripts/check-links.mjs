@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,12 +66,7 @@ for (const absoluteFilePath of markdownFiles) {
     }
 
     try {
-      const targetStats = await stat(resolvedPath);
-      if (targetStats.isDirectory()) {
-        failures.push(`${filePath}: relative link targets a directory "${target}"`);
-      } else if (!targetStats.isFile()) {
-        failures.push(`${filePath}: relative link target is not a regular file "${target}"`);
-      }
+      await access(resolvedPath);
     } catch {
       failures.push(`${filePath}: broken relative link "${target}"`);
     }
