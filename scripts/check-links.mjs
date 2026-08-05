@@ -1,7 +1,10 @@
-import { access, readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const skillsDirectory = path.resolve('skills');
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+const repositoryRoot = path.resolve(scriptDirectory, '..');
+const skillsDirectory = path.join(repositoryRoot, 'skills');
 const failures = [];
 
 async function findMarkdownFiles(directory) {
@@ -26,7 +29,7 @@ let checkedLinks = 0;
 
 for (const absoluteFilePath of markdownFiles) {
   const contents = await readFile(absoluteFilePath, 'utf8');
-  const filePath = path.relative(process.cwd(), absoluteFilePath);
+  const filePath = path.relative(repositoryRoot, absoluteFilePath);
 
   for (const match of contents.matchAll(markdownLink)) {
     let target = match[1].trim();
@@ -51,8 +54,24 @@ for (const absoluteFilePath of markdownFiles) {
 
     checkedLinks += 1;
     const resolvedPath = path.resolve(path.dirname(absoluteFilePath), decodedPath);
+    const repositoryRelativePath = path.relative(repositoryRoot, resolvedPath);
+    const escapesRepository =
+      repositoryRelativePath === '..' ||
+      repositoryRelativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(repositoryRelativePath);
+
+    if (escapesRepository) {
+      failures.push(`${filePath}: relative link escapes repository root "${target}"`);
+      continue;
+    }
+
     try {
-      await access(resolvedPath);
+      const targetStats = await stat(resolvedPath);
+      if (targetStats.isDirectory()) {
+        failures.push(`${filePath}: relative link targets a directory "${target}"`);
+      } else if (!targetStats.isFile()) {
+        failures.push(`${filePath}: relative link target is not a regular file "${target}"`);
+      }
     } catch {
       failures.push(`${filePath}: broken relative link "${target}"`);
     }

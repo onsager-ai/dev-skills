@@ -75,7 +75,7 @@ my-tool/
 
 Order matters — later files depend on earlier ones:
 
-1. **Root configs** — `package.json`, `pnpm-workspace.yaml`, `Cargo.toml`, `turbo.json` Use [templates/bootstrap/](./templates/bootstrap/).
+1. **Root configs** — `package.json`, `pnpm-workspace.yaml`, `Cargo.toml`, `turbo.json` Use the [bootstrap template guidance](./SKILL.md#templates).
 2. **Publish config** — `publish.config.ts` (drives script + workflow generation)
 3. **Main package wrapper** — `bin.js` + `package.json` from rust-npm-publish skill templates, fill in scope/binary name/platforms
 4. **Scripts** — Copy from rust-npm-publish skill templates
@@ -105,9 +105,9 @@ npx skills add -g onsager-ai/dev-skills --skill rust-npm-publish -a claude-code 
 
 ## Templates
 
-| Directory | Contents |
+| Resource | Contents |
 |-----------|----------|
-| [templates/bootstrap/](./templates/bootstrap/) | Root configs: `package.json`, `Cargo.toml`, `pnpm-workspace.yaml`, `turbo.json`, `publish.config.ts` |
+| [Bootstrap template guidance](./SKILL.md#file-generation-order) | Root configs: `package.json`, `Cargo.toml`, `pnpm-workspace.yaml`, `turbo.json`, `publish.config.ts` |
 
 ## Setup & Activation
 

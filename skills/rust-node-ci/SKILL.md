@@ -74,7 +74,7 @@ Understand dev vs release versioning in CI?
 | `publish.yml` | Release, dispatch | Cross-build → publish to npm |
 | `copilot-setup-steps.yml` | repository_dispatch | Copilot agent onboarding |
 
-Templates: [templates/workflows/](./templates/workflows/)
+Templates: [workflow template guidance](./SKILL.md#workflows)
 
 ## CI Jobs
 
@@ -105,7 +105,7 @@ steps:
 
 Install into `.github/actions/<name>/action.yml` in your project, then reference as `uses: ./.github/actions/<name>`.
 
-Templates: [templates/actions/](./templates/actions/)
+Templates: [composite-action guidance](./SKILL.md#composite-actions). For a concrete example, see the [setup-workspace README](./templates/actions/setup-workspace/README.md).
 
 | Action | Install path | Purpose |
 |--------|-------------|---------|
@@ -188,10 +188,10 @@ See [references/troubleshooting.md](./references/troubleshooting.md) for detaile
 
 ## Templates
 
-| Directory | Contents |
+| Resource | Contents |
 |-----------|----------|
-| [templates/workflows/](./templates/workflows/) | `ci.yml`, `publish.yml`, `copilot-setup-steps.yml` |
-| [templates/actions/](./templates/actions/) | 4 composite actions with `action.yml` + README |
+| [Workflow template guidance](./SKILL.md#workflows) | `ci.yml`, `publish.yml`, `copilot-setup-steps.yml` |
+| [Composite-action guidance](./SKILL.md#composite-actions) | 4 composite actions with `action.yml` + README |
 
 ## Setup & Activation
 

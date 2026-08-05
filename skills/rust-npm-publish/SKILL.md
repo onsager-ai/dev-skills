@@ -69,7 +69,7 @@ Same approach used by SWC, Turbopack, esbuild, and similar tools.
 
 ## Configuration
 
-Each repo provides a `publish.config.ts` (see [examples/](./examples/)):
+Each repo provides a `publish.config.ts` (see the [configuration examples](./SKILL.md#configuration)):
 
 ```typescript
 export default {
@@ -96,7 +96,7 @@ See [references/publish-pipeline.md](./references/publish-pipeline.md) for step-
 
 ## Main Package Wrapper (`bin.js`)
 
-The main npm package is a **thin JS wrapper** — `bin.js` resolves the platform binary and spawns it. See [templates/wrapper/](./templates/wrapper/) for the template.
+The main npm package is a **thin JS wrapper** — `bin.js` resolves the platform binary and spawns it. See the [wrapper template guidance](./SKILL.md#main-package-wrapper-binjs).
 
 Key details:
 - `process.platform` returns `win32` (not `windows`) — map `win32-x64` → `@scope/cli-windows-x64`
@@ -195,11 +195,11 @@ See [references/troubleshooting.md](./references/troubleshooting.md) for detaile
 
 ## Templates
 
-| Directory | Contents |
+| Resource | Contents |
 |-----------|----------|
-| [templates/scripts/](./templates/scripts/) | All 11 publish pipeline scripts |
-| [templates/wrapper/](./templates/wrapper/) | `bin.js` + main package `package.json` |
-| [examples/](./examples/) | Real `publish.config.ts` from consuming projects |
+| [Publish script guidance](./SKILL.md#publish-pipeline) | All 11 publish pipeline scripts |
+| [Wrapper template guidance](./SKILL.md#main-package-wrapper-binjs) | `bin.js` + main package `package.json` |
+| [Configuration examples](./SKILL.md#configuration) | Real `publish.config.ts` from consuming projects |
 
 ## Setup & Activation
 
