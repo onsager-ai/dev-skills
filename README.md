@@ -28,6 +28,7 @@ Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but f
 | [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | Post-push PR workflow — spec linking, Delivers, tracker refresh, CI triage (delegates to `ci-triage`), conflict recovery, webhook + post-push CI sweep. Repo-agnostic; CI-failure patterns come from the consumer's CLAUDE.md. |
 | [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded done / in-progress / available-next / blocked. |
 | [`ci-triage`](skills/ci-triage/SKILL.md) | Triage failed CI runs on any GitHub-Actions–driven repo — regression vs flake vs infra, with a rolling `main-red` issue. |
+| [`docs-drift-guard`](skills/docs-drift-guard/SKILL.md) | Keep prose docs in sync with code — the drift-resistance ladder + altitude/one-home discipline, plus the `@onsager/docs-drift-check` CI floor that fails on any dead repo-relative link a Markdown doc cites. |
 | [`web-testing`](skills/web-testing/SKILL.md) | L2 AI-driven web UI testing for React/Vite dashboards. Procedure is repo-agnostic; example routes are Onsager-shaped, forkable. |
 | [`railway`](skills/railway/SKILL.md) | Operate Railway deployments from the CLI — logs, metrics, variables, deploys, SSH, DB shell. Optional bundled scripts are Onsager-specific wrappers. |
 | [`agent-browser`](skills/agent-browser/SKILL.md) | Browser automation CLI for AI agents — navigate, click, fill, screenshot, scrape. |
