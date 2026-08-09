@@ -3,7 +3,7 @@ name: docs-drift-guard
 description: >
   Keep prose docs (architecture overviews, READMEs, ADRs, runbooks) from
   rotting out of sync with the code they describe. Provides a methodology — the
-  drift-resistance ladder (generated/executed > checked > reviewed > prose),
+  drift-resistance ladder (generated > executed > checked > reviewed > prose),
   altitude discipline, and one-home-per-fact — plus a concrete CI floor: the
   zero-dependency `@onsager/docs-drift-check` bin, which fails the gate if any
   repo-relative link/path a Markdown doc cites no longer resolves. Use when
