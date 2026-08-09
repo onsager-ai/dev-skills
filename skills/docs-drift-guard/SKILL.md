@@ -3,7 +3,7 @@ name: docs-drift-guard
 description: >
   Keep prose docs (architecture overviews, READMEs, ADRs, runbooks) from
   rotting out of sync with the code they describe. Provides a methodology — the
-  drift-resistance ladder (derived/executed > checked > reviewed > prose),
+  drift-resistance ladder (generated/executed > checked > reviewed > prose),
   altitude discipline, and one-home-per-fact — plus a concrete CI floor: the
   zero-dependency `@onsager/docs-drift-check` bin, which fails the gate if any
   repo-relative link/path a Markdown doc cites no longer resolves. Use when
@@ -52,7 +52,9 @@ Wire it into the repo's existing gate — whichever the repo already runs:
   import { test } from "node:test";
   import { execFileSync } from "node:child_process";
   test("docs cite no dead paths", () =>
-    execFileSync("docs-drift-check", ["docs/**/*.md", "README.md"], { stdio: "inherit" }));
+    // npx --no-install resolves from node_modules/.bin; a bare bin name only
+    // works when PATH already has it, which plain `node --test` doesn't guarantee.
+    execFileSync("npx", ["--no-install", "docs-drift-check", "docs/**/*.md", "README.md"], { stdio: "inherit" }));
   ```
 - **any repo** — a `package.json` script or a CI step: `docs-drift-check 'docs/**/*.md' README.md`.
 
