@@ -11,6 +11,14 @@
   "bugs": {
     "url": "https://github.com/onsager-ai/dev-skills/issues"
   },
+  "engines": {
+    "node": ">=15.0.0"
+  },
+  "scripts": {
+    "check:frontmatter": "node scripts/check-frontmatter.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "check": "npm run check:frontmatter && npm run check:links"
+  },
   "keywords": [
     "claude",
     "claude-code",
