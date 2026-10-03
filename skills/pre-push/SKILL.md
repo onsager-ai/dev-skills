@@ -5,10 +5,6 @@ description: Run before pushing code on any repo that follows the spec-issue-dri
 
 # pre-push
 
-## Checkout-local use
-
-Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
-
 Mechanical checklist that catches the reviewer / CI failures a repo has actually had, plus a spec-link check that enforces the SDD loop locally — before the PR is open, so the author sees the problem locally instead of hearing it from a reviewer or a `pr-spec-sync` bot.
 
 This is the **repo-agnostic** half. Each consumer repo overlays its delta in its `CLAUDE.md` and its `<repo>-dev-process` sister skill:

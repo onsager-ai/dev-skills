@@ -1,6 +1,6 @@
 # dev-skills
 
-Cross-repo **engineering-methodology skills** — the dev-process scaffolding that has converged across [`onsager-ai/onsager`](https://github.com/onsager-ai/onsager), [`onsager-ai/onsager-skills`](https://github.com/onsager-ai/onsager-skills), [`onsager-ai/duhem`](https://github.com/onsager-ai/duhem), and [`codervisor/lean-spec`](https://github.com/codervisor/lean-spec) and is worth maintaining once in one place. Each repo previously carried its own copy; this bundle consolidates them so a single `npx skills add` installs the lot.
+Cross-repo **engineering-methodology skills** — the dev-process scaffolding that has converged across [`onsager-ai/onsager`](https://github.com/onsager-ai/onsager), [`onsager-ai/onsager-skills`](https://github.com/onsager-ai/onsager-skills), [`onsager-ai/duhem`](https://github.com/onsager-ai/duhem), and [`codervisor/lean-spec`](https://github.com/codervisor/lean-spec) and is worth maintaining once in one place. Each repo previously carried its own copy; this bundle owns the shared source used by generated checkout-local consumers.
 
 ## Agent configuration review
 
@@ -66,9 +66,13 @@ This bundle is the consolidation target for engineering-methodology skills used 
 
 The installed copies under `~/.claude/skills/` are **read-only**. Consumer repos that include the `check-skill-edit.sh` PreToolUse hook will block direct edits to any installed copy that carries a `.upstream-source` marker — the fix is to PR upstream and re-run `npx skills add`.
 
-## Adopting a skill in another repo
+## Adopting in another repo
 
-If you're adding a new consumer repo that wants every skill here, just run the install one-liner. If your repo only needs one or two, install them individually with `--skill <name>`. The `pre-push`, `pr-lifecycle`, and `ci-triage` skills read repo-specific detail (the check-gate command, merge-collision patterns, the CI-failure table) from the consumer's CLAUDE.md and its `<repo>-dev-process` skill — a new consumer overlays those rather than forking the skills.
+Use [checkout-local synchronization](agent-config/README.md). Select shared skills,
+common rules and local skill names in the manifest, generate once, and commit the
+result. Normal developers then clone and work; scheduled draft-update PRs maintain
+the pinned source. Repository contracts and overlays retain local ownership.
+Legacy personal installation above remains optional.
 
 ## License
 

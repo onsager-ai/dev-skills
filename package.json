@@ -12,7 +12,7 @@
     "url": "https://github.com/onsager-ai/dev-skills/issues"
   },
   "engines": {
-    "node": ">=15.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "check:frontmatter": "node scripts/check-frontmatter.mjs",

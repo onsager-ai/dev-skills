@@ -60,6 +60,12 @@ and checked, so changes have one authored source.
   links across 48 skill Markdown files. New documentation links were checked
   separately. `git diff --cached --check` passed for each proposal.
 
+The shared generator also passed seven behavioral tests for offline use, asset and
+executable-mode preservation, dependency closure, idempotence, edited-file and
+provenance rejection, local regeneration and selection removal. Generated
+Agent configuration CI passed on all three pilot PRs. Scheduled update execution
+remains unverified; the Actions PR-policy settings API returned 403.
+
 ## Remaining adoption gates
 
 Rust/Cargo and `just` are absent in this environment. Product gates were not run;

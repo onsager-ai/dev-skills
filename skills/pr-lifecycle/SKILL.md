@@ -5,10 +5,6 @@ description: Manage a PR after it's been pushed on any repo that follows the spe
 
 # pr-lifecycle
 
-## Checkout-local use
-
-Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
-
 Everything that happens after `git push` on a PR: spec-issue linking, CI triage, review-comment discipline, webhook subscription + the post-push sweep, and the manual ticking of Plan items / umbrella trackers on merge.
 
 This is the **repo-agnostic** half. The consumer repo's CLAUDE.md / `<repo>-dev-process` overlays its CI-failure patterns, its scope (which repos this operates on), and any repo-local automation (a `pr-spec-sync` workflow, audit scripts) or the lack of it.

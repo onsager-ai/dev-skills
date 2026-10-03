@@ -19,10 +19,6 @@ metadata:
 
 # docs-drift-guard
 
-## Checkout-local use
-
-Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
-
 Prose documentation drifts because nothing forces it to stay true: the code moves, the doc doesn't, and the rot is invisible until someone trusts a stale sentence. This skill is the methodology for making that drift either impossible (by construction) or loud (by a check), plus the ready-made floor check to drop into any repo's gate.
 
 ## The principle

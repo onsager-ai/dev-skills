@@ -5,10 +5,6 @@ description: Triage failed CI runs on a GitHub-Actions–driven repo — classif
 
 # ci-triage
 
-## Checkout-local use
-
-Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
-
 Shared logic for classifying a failed CI workflow run and recording the outcome. Used by humans (or Claude in an interactive session) when triaging a red `main` workflow or a red check on an open PR — the latter via the shared `pr-lifecycle` skill, whose CI-triage section delegates the taxonomy here.
 
 This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and the issue template. Repo-specific reproduction steps and failure patterns live in the consumer repo's CLAUDE.md / `<repo>-dev-process` (read by `pr-lifecycle`), and browser reproduction follows the repository's own fixtures and browser-verification workflow.
@@ -112,5 +108,5 @@ One of those alone is not enough. A deterministic regression can pass on the pri
 
 | Surface | Role |
 |---------|------|
-| [`pr-lifecycle`](../pr-lifecycle/SKILL.md) (global) | Interactive caller; its CI-triage section delegates the taxonomy here when triaging a red PR check. |
+| [`pr-lifecycle`](../pr-lifecycle/SKILL.md) (checkout-local) | Interactive caller; its CI-triage section delegates the taxonomy here when triaging a red PR check. |
 | Repository browser-verification workflow | Supplies product fixtures and `e2e` reproduction. |

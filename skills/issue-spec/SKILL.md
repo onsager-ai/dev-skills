@@ -1,13 +1,9 @@
 ---
 name: issue-spec
-description: Create lean-spec style GitHub issues as specs for human-AI aligned implementation on the current repo. Use when asked to "create a spec", "write a spec issue", "spec this feature", "spec this", or when planning work that needs a specification before implementation. Follows the lean-spec SDD methodology — small focused specs (<2000 tokens), intent over implementation, context economy. Creates GitHub issues with Overview, Design, Plan, Test, Alignment, and Notes sections. Repo-specific area taxonomy, sister-skill names, custom body sections (e.g. Provider impact / Schema impact / Reach), and additional principles are overlaid by the consumer repo's CLAUDE.md and its `*-dev-process` sister skill — read those first when the repo isn't obvious. The `pre-push` and `pr-lifecycle` methodology is shared globally (vendored from `onsager-ai/dev-skills`), like this skill.
+description: Create lean-spec style GitHub issues as specs for human-AI aligned implementation on the current repo. Use when asked to "create a spec", "write a spec issue", "spec this feature", "spec this", or when planning work that needs a specification before implementation. Follows the lean-spec SDD methodology — small focused specs (<2000 tokens), intent over implementation, context economy. Creates GitHub issues with Overview, Design, Plan, Test, Alignment, and Notes sections. Repo-specific area taxonomy, sister-skill names, custom body sections (e.g. Provider impact / Schema impact / Reach), and additional principles are overlaid by the consumer repo's CLAUDE.md and its `*-dev-process` sister skill — read those first when the repo isn't obvious. The `pre-push` and `pr-lifecycle` methodology is shared across repositories (vendored from `onsager-ai/dev-skills`), like this skill.
 ---
 
 # issue-spec
-
-## Checkout-local use
-
-Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
 
 Create GitHub issues as lean-spec style specifications for human-AI aligned implementation on whatever repo this skill is installed in. GitHub issues are the sole spec medium — no spec files.
 
@@ -15,7 +11,7 @@ This skill is the **repo-agnostic methodology** half of the contract. Each consu
 
 - **Repo CLAUDE.md** — names the GitHub slug (`codervisor/lean-spec`, `onsager-ai/onsager`, `onsager-ai/duhem`, …) and any repo-specific spec principles (e.g. Onsager's Reach + seam rule, lean-spec's provider-agnostic core + i18n, Duhem's worked-example + schema-impact).
 - **`<repo>-dev-process` sister skill** — carries the area-label taxonomy, the spec-vs-`trivial` gate, the SDD loop wiring, and the repo's pre-push check gate + CI-failure patterns.
-- **Global `pre-push` / `pr-lifecycle` skills** — the shared pre-push and post-push methodology (vendored from `onsager-ai/dev-skills`). The consumer repo overlays only its gate command, collision patterns, and any `pr-spec-sync` automation via CLAUDE.md / `<repo>-dev-process`; the skills themselves are not per-repo.
+- **Shared `pre-push` / `pr-lifecycle` skills** — the shared pre-push and post-push methodology (vendored from `onsager-ai/dev-skills`). The consumer repo overlays only its gate command, collision patterns, and any `pr-spec-sync` automation via CLAUDE.md / `<repo>-dev-process`; the skills themselves are not per-repo.
 
 When in doubt about the target repo, run `git remote -v` and read the repo's `CLAUDE.md` and its `*-dev-process` skill before drafting the spec body.
 
@@ -281,7 +277,7 @@ Treat reading those as part of step 1 (Discover). Don't draft a spec without hav
 | [references/spec-format.md](references/spec-format.md) | Always — section-by-section guide with worked examples    |
 | Repo's `CLAUDE.md`                                     | Always — repo-specific principles + always-spec surfaces  |
 | Repo's `*-dev-process` sister skill                    | Always — area-label taxonomy + spec-vs-`trivial` gate     |
-| `pr-lifecycle` (global)                                | When publishing — post-push workflow; the repo's CLAUDE.md says whether it automates `pr-spec-sync`. |
+| `pr-lifecycle` (checkout-local)                                | When publishing — post-push workflow; the repo's CLAUDE.md says whether it automates `pr-spec-sync`. |
 
 ## Scripts
 
