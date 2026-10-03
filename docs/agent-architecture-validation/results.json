@@ -1,0 +1,74 @@
+{
+  "prepared_on": "2026-10-03",
+  "static_checks": "Source package checksums (42 files) and source-aware checker passed. Final pilot checks recorded in ../agent-architecture-adoption.md.",
+  "patch_applicability": "Semon/Tolmap patches passed against current main. Duhem packaged patch failed: it omits deletion of tracked .agents/skills symlink; materialized proposed tree in a task worktree instead.",
+  "available_cli": "codex-cli 0.159.0-alpha.3; Claude CLI absent",
+  "experiments": [
+    {
+      "case": "native",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "bridge",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "nested-root",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "nested-cwd",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "override",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "ancestor",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "local-claude",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "skill-discovery",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "duplicate-skill",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    },
+    {
+      "case": "offline-cloud",
+      "status": "not_run",
+      "evidence": [],
+      "reason": "Fixture supplied for manual supported-version and Cloud experiments; no model session launched."
+    }
+  ],
+  "fixture_structure": "passed; six separate Git roots plus profile material",
+  "experiment_limits": "No interactive or Cloud experiments executed. Claude CLI is absent; organization supported harness fleet and disposable Cloud test repository are not configured in this session. Codex CLI availability is not adherence evidence.",
+  "product_gates": {
+    "status": "not_run",
+    "reason": "cargo and just are unavailable in this environment; Duhem just preflight is blocked."
+  }
+}

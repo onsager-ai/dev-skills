@@ -12,17 +12,19 @@
     "url": "https://github.com/onsager-ai/dev-skills/issues"
   },
   "engines": {
-    "node": ">=15.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "check:frontmatter": "node scripts/check-frontmatter.mjs",
     "check:links": "node scripts/check-links.mjs",
-    "check": "npm run check:frontmatter && npm run check:links"
+    "check:agent-config": "node agent-config/check-content.mjs && node --test agent-config/sync.test.mjs",
+    "check": "npm run check:frontmatter && npm run check:links && npm run check:agent-config"
   },
   "keywords": [
     "claude",
     "claude-code",
     "skills",
+    "agent-config",
     "dev-process",
     "engineering-methodology"
   ],
