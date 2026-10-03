@@ -25,11 +25,13 @@ Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but t
 
 ## Skills
 
+The selected pilot procedures are harness-neutral. Their [harness-operations](skills/harness-operations/SKILL.md) dependency maps actual capabilities and loads only the matching Claude/Codex reference. Other optional catalog skills below retain their declared prerequisites.
+
 | Skill | One-liner |
 | --- | --- |
-| [`issue-spec`](skills/issue-spec/SKILL.md) | Create lean-spec-style GitHub issues as specs for human-AI aligned implementation. Repo-agnostic methodology; consumer repos overlay their area taxonomy via CLAUDE.md. |
-| [`pre-push`](skills/pre-push/SKILL.md) | Pre-push checklist for the SDD loop — sync the merge preview, walk merge-conflict patterns, run the repo's check gate, confirm a linked spec. Repo-agnostic; the gate command + collision patterns come from the consumer's CLAUDE.md. |
-| [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | Post-push PR workflow — spec linking, Delivers, tracker refresh, CI triage (delegates to `ci-triage`), conflict recovery, webhook + post-push CI sweep. Repo-agnostic; CI-failure patterns come from the consumer's CLAUDE.md. |
+| [`issue-spec`](skills/issue-spec/SKILL.md) | Create/revise a focused spec under the repo's contribution policy; use its local medium, labels and impact overlays. |
+| [`pre-push`](skills/pre-push/SKILL.md) | Pre-push checklist for the SDD loop — sync the merge preview, walk merge-conflict patterns, run the repo's check gate, confirm a linked spec. Repo-agnostic; the gate command + collision patterns come from the consumer's AGENTS.md. |
+| [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | Post-push PR workflow — spec linking, Delivers, tracker refresh, CI triage (delegates to `ci-triage`), conflict recovery, webhook + post-push CI sweep. Repo-agnostic; CI-failure patterns come from the consumer's AGENTS.md. |
 | [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded done / in-progress / available-next / blocked. |
 | [`ci-triage`](skills/ci-triage/SKILL.md) | Triage failed CI runs on any GitHub-Actions–driven repo — regression vs flake vs infra, with a rolling `main-red` issue. |
 | [`docs-drift-guard`](skills/docs-drift-guard/SKILL.md) | Keep prose docs in sync with code — the drift-resistance ladder + altitude/one-home discipline, plus the `@onsager/docs-drift-check` CI floor that fails on any dead repo-relative link a Markdown doc cites. |
@@ -54,7 +56,7 @@ Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but t
 | User-facing product loop | `onsager-ai/onsager-skills` | `onsager-design-workflow`, `onsager-run-workflow` |
 | Repo-local dev process | the consumer repo's `.claude/skills/` | `onsager-dev-process`, `duhem-dev-process` |
 
-A repo-local skill stays local when it carries the repo's specific area taxonomy, build-tool conventions, or product-specific seams — `<repo>-dev-process` is the canonical such skill. A skill belongs here when the procedure generalizes — Onsager, lean-spec, and Duhem all benefit from the same shape with at most a thin CLAUDE.md overlay. The pre-push and PR-lifecycle workflows used to be per-repo (`onsager-pre-push`, `duhem-pr-lifecycle`, …); they converged enough to consolidate into the global `pre-push` / `pr-lifecycle` skills, with each repo's gate command, collision patterns, and CI-failure table overlaid via its CLAUDE.md / `<repo>-dev-process`.
+A repo-local skill stays local when it carries the repo's specific area taxonomy, build-tool conventions, or product-specific seams — `<repo>-dev-process` is the canonical such skill. A skill belongs here when the procedure generalizes — Onsager, lean-spec, and Duhem all benefit from the same shape with at most a thin CLAUDE.md overlay. The pre-push and PR-lifecycle workflows used to be per-repo (`onsager-pre-push`, `duhem-pr-lifecycle`, …); they converged enough to consolidate into the global `pre-push` / `pr-lifecycle` skills, with each repo's gate command, collision patterns, and CI-failure table overlaid via its AGENTS.md / `<repo>-dev-process`.
 
 ## Contributing
 

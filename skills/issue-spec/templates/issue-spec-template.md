@@ -9,7 +9,7 @@
 
 ## Design
 
-<!-- Technical approach at intent level. Data flow, state changes, API/schema surface — not line-by-line code. Include what's explicitly OUT OF SCOPE. Respect the consumer repo's architectural invariants (seam rule / provider-agnostic core / holistic verification — see the repo's CLAUDE.md). -->
+<!-- Technical approach at intent level. Data flow, state changes, API/schema surface — not line-by-line code. Include what's explicitly OUT OF SCOPE. Respect the consumer repo's architectural invariants (seam rule / provider-agnostic core / holistic verification — see the repo's AGENTS.md). -->
 
 ## Plan
 

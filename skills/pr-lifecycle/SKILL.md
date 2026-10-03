@@ -1,152 +1,59 @@
 ---
 name: pr-lifecycle
-description: Manage a PR after it's been pushed on any repo that follows the spec-issue-driven (SDD) loop — spec-issue linking, CI triage, review-comment discipline, merge-conflict recovery on open PRs, webhook subscription + the post-push CI sweep, and manual Plan-item / tracker ticking on merge. Triggers include "CI is failing", "check is red", "link this issue", "Closes vs Part of", "respond to review", "subscribe to PR", "triage PR", "the PR is ready", "PR has conflicts", "branch has conflicts with main", "merge conflict on the PR", or when a github-webhook-activity event arrives. Repo-agnostic methodology; the consumer repo's CLAUDE.md and `<repo>-dev-process` overlay the repo-specific CI-failure patterns and any repo-local automation. Paired with `pre-push` (which owns the conflict walkthrough), `issue-spec`, and `ci-triage`.
+description: Create or update an authorized pull request, reconcile its delivery links, handle review and CI, and report exact check state. Use for PR preparation, review comments, red checks, conflicts or post-push verification.
 ---
 
-# pr-lifecycle
+# Pull-request lifecycle
 
-Everything that happens after `git push` on a PR: spec-issue linking, CI triage, review-comment discipline, webhook subscription + the post-push sweep, and the manual ticking of Plan items / umbrella trackers on merge.
+## Scope
 
-This is the **repo-agnostic** half. The consumer repo's CLAUDE.md / `<repo>-dev-process` overlays its CI-failure patterns, its scope (which repos this operates on), and any repo-local automation (a `pr-spec-sync` workflow, audit scripts) or the lack of it.
+This skill owns PR method. The task and repository policy own publication,
+review responses, issue/comment writes and merge authority. AGENTS.md and the
+repo overlay own scope, labels, SDD linking and gates. Opening/updating authority
+does not itself authorize merging. Keep repository-specific policy out of this
+shared procedure.
 
-## Tool discipline
+## Prerequisites
 
-- Use the GitHub tools available in the current harness and its configured authentication. Native tool names below illustrate operations; map them to the connected GitHub API or supported CLI. Do not require a personal MCP installation.
-- Scope to the repo you're working on (and any sibling the repo's CLAUDE.md sanctions). Don't query unrelated repos.
-- Opening, updating or merging a pull request requires authority supplied by the task or the repository's declared workflow policy. This procedure does not grant authority itself. Once authorized, perform the spec/trivial decision, relevant checks and accurate reporting before creating or updating the PR. Authority to open or update a PR does not by itself authorize merging it.
+Know the exact repo, base/head and delivery scope. Follow
+[pre-push](../pre-push/SKILL.md) before publication. Use
+[harness-operations](../harness-operations/SKILL.md) for capability mapping only
+when needed; subscriptions and a specific GitHub tool are not prerequisites.
 
-## Spec-issue linking (mandatory)
+## Procedure
 
-When the repository declares the SDD spec-link gate, every PR must either:
+1. Create or update the existing PR rather than duplicating it. Describe the final
+   behavior and validation. Where the repo requires SDD, use `Closes #N` for the
+   complete remaining spec slice, `Fixes #N` for a delivered defect, `Part of #N`
+   for partial work or `Refs #N` for related context. Use one closure keyword per
+   issue. Apply a trivial exception only under the repo's rule. Use
+   [issue-spec](../issue-spec/SKILL.md) when the contribution gate requires a spec.
+2. List exact delivered Plan items when the PR is a spec slice. Keep the spec's
+   own Plan unchecked until the slice lands. Do not imply that passing checks or
+   creating a draft completes adoption tests that remain unrun.
+3. Read both commit-status and check/workflow surfaces for the exact head SHA.
+   Subscriptions may help when supported, but do not replace this explicit sweep.
+   Distinguish passed, failed, pending, cancelled, skipped and unavailable checks.
+   A skipped required gate or an absent result is not a pass.
+4. Delegate failure classification to [ci-triage](../ci-triage/SKILL.md). Reproduce
+   using repo-owned gates/fixtures. Fix defects within scope; report blocked logs,
+   setup or human decisions. For conflicts use pre-push's local reconciliation
+   and rerun checks on the resulting tree; do not use the web conflict editor as
+   a substitute for local validation.
+5. Address review findings in coherent commits. Reply where explaining a decision,
+   answering a question or requesting necessary clarification is useful. Resolve
+   a thread only after checking its concern. New design boundaries belong in the
+   relevant spec/decision record; already authorized fixes can proceed.
+6. After every head change repeat the status/check sweep. Do not promise background
+   monitoring unless the current harness actually provides it. If checks remain
+   running, report that state and the concrete next check needed.
+7. Merge only under separate authority and the repo's required gates. After landing,
+   verify native issue closure, update delivered Plan items on partial specs, and
+   reconcile an existing umbrella tracker when authorized. Cite the landed PR and
+   avoid marking abandoned or unmerged work complete.
 
-1. Link to a spec issue in its body via `Closes #N` / `Fixes #N` / `Resolves #N` (slice complete) or `Part of #N` / `Refs #N` (scaffolding), **OR**
-2. Carry the `trivial` label (typo, doc-only, one-line obvious fix).
+## Completion
 
-Under that declared gate, if neither is present, the PR is out of process. Comment asking the author to add a spec link — creating one via `issue-spec` if none exists — or apply the `trivial` label.
-
-### Which keyword to use
-
-GitHub closes issues on merge when the PR body contains one of: `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, `resolved` — followed by `#N`. Pick the keyword based on **what this PR actually delivers**:
-
-| PR delivers                                            | Use         |
-| ------------------------------------------------------ | ----------- |
-| The acceptance test / vertical slice the spec asks for | `Closes #N` |
-| A bug fix for a specific defect                        | `Fixes #N`  |
-| Scaffolding / one phase of a multi-phase spec          | `Part of #N`|
-| Related work that shouldn't close the spec             | `Refs #N`   |
-
-`Part of` / `Refs` are **not** auto-close keywords — they just cross-link in the UI. Use them for scaffolding so the spec stays open for the real slice. Edit the PR body via `mcp__github__update_pull_request` (don't open a new PR just to fix the link); put the linking line at the top of the body.
-
-### Multi-issue PRs — enumerate every closure
-
-If a single PR delivers acceptance for more than one issue, write **one `Closes` keyword per issue**:
-
-```markdown
-Closes #27, Closes #30, Closes #33
-```
-
-GitHub only honors auto-close on each `#N` individually; `Closes #27, #30, #33` closes #27 and leaves #30/#33 open. Auto-close also doesn't fire for issues merely *mentioned* in commit subjects — without an explicit `Closes` line they stay open after merge.
-
-### The `## Delivers` subsection
-
-For `Part of #N` PRs (and ideally all PRs), include a `## Delivers` subsection listing the exact Plan items this PR ticks. Copy the item text verbatim from the spec's `## Plan`, marking each `- [x]` (the PR delivers them, even though the spec's boxes stay `- [ ]` until you tick them after merge). Use this list to tick the parent spec's checkboxes after merge.
-
-Example PR body:
-
-```markdown
-Part of #42
-
-## Delivers
-- [x] Add `--filter` flag handling in `src/run.rs`
-- [x] Update the CLI reference doc
-
-## Summary
-First slice. Backwards-compatible; the event-emission half lands next.
-```
-
-## Issue progress
-
-Spec issues use only their open/closed state — no status labels. Lifecycle moves:
-
-- PR merged with `Closes #N` → issue auto-closes (GitHub).
-- PR merged with `Part of #N` → spec stays open; tick the delivered Plan items on the parent manually.
-- PR closed unmerged → spec issue stays open as-is.
-
-You are responsible for ticking Plan checkboxes on parent specs after merge: read the merged PR's `## Delivers`, find each matching `- [ ]` line in the parent spec's `## Plan`, flip it to `- [x]`, and edit the spec body via `mcp__github__issue_write`.
-
-## Umbrella tracker refresh
-
-Some issues are **umbrella trackers** that reference several sub-issues as a checklist — identified by a `[Tracking]` title prefix, a `tracking` label, or a `## Progress` section whose items are `- [ ] #N` lines. When a PR closes a sub-issue, the tracker does **not** update itself. After merge, for each auto-closed or explicitly-closed issue:
-
-1. Search for umbrella trackers that reference it: `mcp__github__search_issues` with `repo:<owner>/<repo> #N in:body is:issue is:open`.
-2. For each match, read the tracker body. If there's a matching `- [ ] ... #N ...` line in a Progress / Plan section, flip it to `- [x]`.
-3. Post one tracker comment summarizing the delta, not one per issue: "PR #<pr> landed #N1, #N2, #N3; ticked in Progress."
-4. If after the tick every sub-issue is closed, note the tracker is now a candidate for closure — don't close it unilaterally, just flag it.
-
-## CI triage
-
-For the classification taxonomy (`regression` / `flake` / `infra` / `needs-human`), suspect-commit identification, the log-access facts (`WebFetch` can't read authenticated Actions logs — 403; use `mcp__github__pull_request_read` `method: get_check_runs`), and the rolling `main-red` issue convention, use the `ci-triage` skill (vendored from `onsager-ai/dev-skills`). This section covers only the PR-side specifics that `ci-triage` delegates back.
-
-**Reproduce locally.** Once you have the failing step from `get_check_runs`, sync main and re-run that step with the exact flags from the repo's workflow yaml against the merged tree — the repo's check gate (see `pre-push` step 2 / the repo's CLAUDE.md) is the same set of commands CI runs. The repo's CLAUDE.md / `<repo>-dev-process` carries the repo-specific failure-pattern table (the recurring "passes locally, fails on CI" causes).
-
-### When CI is missing entirely
-
-If the repo has no CI workflow that exercises the change, that's an infra spec to file — not a license to skip local verification. Run the gate locally and note the gap in the PR body so a reviewer can decide whether to merge ahead of the missing CI.
-
-## Merge conflicts on an open PR
-
-When GitHub shows "This branch has conflicts that must be resolved" or `mcp__github__pull_request_read` reports `mergeable: false`, resolve **locally** — the GitHub web editor bypasses any local validation and routinely lands broken merges.
-
-1. **Don't** use `mcp__github__update_pull_request_branch` to auto-merge main in via GitHub. That surfaces the same conflicts without a resolution workspace, then commits a broken merge if you accept the default.
-2. Check out the branch locally and run the full conflict walkthrough in `pre-push` (step 1, "Resolving conflicts") — inventory, pattern-match, resolve, verify with the repo gate, commit.
-3. After the merge commit lands, continue with the rest of `pre-push` (check gate, spec-link) before pushing. CI's `pull_request` job tests the new merge preview — if you didn't rebuild locally, CI finds out first.
-4. Push the merge commit to the same branch with `git push` (no `--force`). The existing PR updates in place; the conflict banner clears when GitHub re-evaluates.
-5. If the PR is tied to a `Closes #N` / `Part of #N` line and the merge touched the spec's surface area, comment on the spec flagging what drifted, so the parent stays accurate.
-
-If the branch is so far behind main that the conflict set is large (>10 files or crosses subsystem boundaries), close the PR, rebase the work into a fresh branch from `origin/main`, and open a new PR with the same linking line. Note the close reason on the old PR.
-
-## Review comments
-
-**Fix the code. Don't reply per comment.** Multiple reviewers (Copilot + human) often flag the same defect; a single commit that fixes it resolves all of them at once.
-
-Reply *only* when: declining a suggestion (explain why, briefly); the comment is a question, not a bug report; or you're asking for clarification before acting. Use `mcp__github__add_reply_to_pull_request_comment` for threaded replies, never top-level comments unless summarizing multiple responses at once.
-
-Automated reviewers (Copilot) sometimes flag idiomatic code as broken — verify locally before "fixing" a non-bug, but prefer the clearer form even when the lint was wrong. If a review comment raises a design concern the spec didn't address, pause and update the linked spec issue (add an open question under `## Alignment`, comment on the spec, let a human decide). Don't silently expand scope in the PR.
-
-## Webhook subscription
-
-Events from CI and reviewers arrive wrapped in `<github-webhook-activity>` tags; the harness forwards them as user messages.
-
-- If the current harness supports subscriptions, subscribe once per PR with `mcp__github__subscribe_pr_activity` after the PR is created (or the user asks you to watch it).
-- Unsubscribe with `mcp__github__unsubscribe_pr_activity` when done — not strictly necessary but cleaner.
-- Treat each event as actionable; skip only if it's a duplicate of one you just addressed.
-
-### What the subscription does NOT cover
-
-The subscription is **not** an "all CI events" feed. It's filtered to issue comments and review activity plus a small set of well-known `check_run` state changes. Two silent-failure surfaces leak through, observed on real PRs:
-
-- **Commit statuses.** GitHub's `status` API is a separate channel from `check_run`. Per-PR deploys (Railway, Vercel), secret scanners, and any GitHub App posting via the legacy statuses API fire here, not as check_runs. No `<github-webhook-activity>` event arrives — the failure is only visible if you call `pull_request_read get_status` directly.
-- **`check_run` completion transitions.** The subscription fires on some state changes but is not reliable for "the build job just finished failure". An in-progress check that completes after you've ended your turn does not necessarily wake the session.
-
-### Post-push CI sweep (mandatory)
-
-Once the PR is open, whether or not subscriptions are available, run this sweep **before declaring "all green" or ending the turn**:
-
-1. Read both surfaces explicitly: `pull_request_read` `method: get_status` (every commit status for the head SHA — treat any `state=failure` as actionable even if no webhook fired) and `pull_request_read` `method: get_check_runs` (every check_run — treat any `conclusion=failure` as actionable).
-2. Any check still `in_progress` or `queued` is **not** ground for "completed" — record a follow-up to re-poll ~5 min post-push and check it off only after a follow-up sweep shows the check finished. Don't sleep-poll inside the same turn; end the turn and let the user (or a subsequent webhook) bring you back.
-3. If the sweep returns nothing actionable but checks are still running, say so explicitly in the end-of-turn summary so the user doesn't infer the PR is fully green.
-
-The sweep is cheap (two MCP calls) and is the only mechanical defense against the silent-failure surfaces above.
-
-## Reporting back to the user
-
-After handling a webhook event, end with one or two sentences: what the failure was, what you changed, whether CI is re-running. Don't dump the full commit message in chat — the user can see it on the PR.
-
-## Relationship to other skills
-
-| Related surface | Role |
-|-----------------|------|
-| `<repo>-dev-process` | Top-level SDD loop; points here for the post-push stage, and overlays the repo's CI-failure patterns. |
-| `issue-spec` | Creates the spec issue this PR links to. Vendored from `onsager-ai/dev-skills`. |
-| `pre-push` | Runs before `git push`; owns the conflict walkthrough and enforces the spec-link check locally. |
-| `ci-triage` | Shared failure taxonomy + `main-red` issue convention + log-access facts; called from this skill's CI triage flow. Vendored from `onsager-ai/dev-skills`. |
+Report the PR URL, head, what changed, evidence from both check surfaces and
+remaining gates. Keep draft status when its declared adoption evidence is missing.
+CI success is not proof of native agent-instruction discovery or Cloud behavior.

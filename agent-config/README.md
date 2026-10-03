@@ -16,6 +16,13 @@ or personal MCP configuration is needed to load these workflows.
 | Generator and update/check workflow | `agent-config/` in dev-skills | Pinned generated consumer tooling |
 | Repository invariants and Claude mechanics | Consumer AGENTS/CLAUDE outside managed block | Repo-owned, retained by sync |
 
+The five common procedures describe operations and outcomes without native tool
+names. Their relative dependency on `harness-operations` includes one capability
+adapter and conditional Claude/Codex references automatically. Repo skills own
+only their fixtures, acceptance gates, domain procedures and local policy deltas.
+`check-content.mjs` keeps native tool assumptions out of selected common prose;
+actual capability/discovery behavior still needs runtime evidence.
+
 Physical discovery copies are generated artifacts, not additional authored
 sources. CI compares them with the exact pinned upstream and rejects changes,
 missing/extra assets, name collisions, stale local projections and altered managed

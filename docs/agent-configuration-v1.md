@@ -88,7 +88,7 @@ A consumer MUST select a full immutable source revision and the required subset 
 
 Update through reviewed PRs. A deterministic `--check` operation MUST detect changes to generated content and provenance. No network fetch is required during ordinary agent work. Submodules are not the default; local generation/vendor copies are more reliable in offline and ephemeral environments.
 
-The revised pilots implement checkout-local distribution using the [deterministic generator](../agent-config/README.md), immutable manifests, drift locks and generated Claude projections. Shared workflow introductions defer policy to repo contracts and map tool operations to each harness. Full neutralization of legacy examples outside the selected workflows remains later work.
+The revised pilots implement checkout-local distribution using the [deterministic generator](../agent-config/README.md), immutable manifests, drift locks and generated Claude projections. Shared workflow introductions defer policy to repo contracts and map tool operations to each harness. The selected common bodies are harness-neutral; harness-operations owns conditional Claude/Codex capability references. Other optional legacy skills outside the selected subset retain their declared tool prerequisites.
 
 ## Context budget
 
