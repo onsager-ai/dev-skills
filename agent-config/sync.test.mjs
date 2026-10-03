@@ -20,6 +20,8 @@ function fixture(t) {
   write(source,'skills/parent/references/detail.md','Stable detail.');
   write(source,'skills/child/SKILL.md',skill('child'));
   write(source,'skills/child/data.bin',Buffer.from([0,255,42]));
+  write(source,'skills/child/check.sh','#!/bin/sh\nexit 0\n');
+  fs.chmodSync(path.join(source,'skills/child/check.sh'),0o755);
   write(source,'agent-config/rules/checks.md','Report actual check outcomes.');
   write(source,'agent-config/sync.mjs',fs.readFileSync(new URL('./sync.mjs',import.meta.url)));
   write(source,'agent-config/workflow.yml',fs.readFileSync(new URL('./workflow.yml',import.meta.url)));
@@ -39,6 +41,7 @@ test('fresh checkout includes dependency closure/assets and works offline; gener
   const f=fixture(t); f.sync(); f.check(); f.check(true);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.repo,'.agents/lock.json'))).resolved_skills,['child','parent']);
   assert.deepEqual(fs.readFileSync(path.join(f.repo,'.claude/skills/child/data.bin')),Buffer.from([0,255,42]));
+  for(const base of ['.agents','.claude']) assert.ok(fs.statSync(path.join(f.repo,`${base}/skills/child/check.sh`)).mode & 0o111);
   const lock=fs.readFileSync(path.join(f.repo,'.agents/lock.json')); const agents=fs.readFileSync(path.join(f.repo,'AGENTS.md'));
   f.sync(); assert.deepEqual(fs.readFileSync(path.join(f.repo,'.agents/lock.json')),lock); assert.deepEqual(fs.readFileSync(path.join(f.repo,'AGENTS.md')),agents);
   fs.renameSync(f.source,f.source+'-unavailable'); f.check();
@@ -53,6 +56,11 @@ test('rejects shared/projection/rule/manifest drift and unowned assets',t => {
     assert.throws(()=>f.check()); fs.writeFileSync(p,before);
   }
   f.write(f.repo,'.agents/skills/parent/extra.md','Unexpected'); assert.throws(()=>f.check(),/Projection|Unmanaged/);
+});
+
+test('detects executable mode drift in vendored scripts',t => {
+  const f=fixture(t);f.sync();fs.chmodSync(path.join(f.repo,'.agents/skills/child/check.sh'),0o644);
+  assert.throws(()=>f.check(),/executable mode drift/);
 });
 
 test('allows local authoring then regenerates only projections, preserving repo contract',t => {

@@ -81,7 +81,7 @@ function expected(root, manifest, source) {
     if (!front || !front[1].includes(`name: ${name}\n`) || !/^description:\s*\S/m.test(front[1])) fail(`Invalid upstream skill metadata: ${name}`);
     for (const asset of assets) {
       const bytes = get(asset.name);
-      for (const target of [`.agents/${asset.name}`, `.claude/${asset.name}`]) files.set(target, { bytes, owner: 'shared' });
+      for (const target of [`.agents/${asset.name}`, `.claude/${asset.name}`]) files.set(target, { bytes, owner: 'shared', mode: asset.mode });
       if (!asset.name.endsWith('.md')) continue;
       for (const match of bytes.toString().matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
         const target = match[1].split('#')[0];
@@ -100,7 +100,7 @@ function expected(root, manifest, source) {
     const prefix = `.agents/skills/${name}/`;
     const assets = walk(root, prefix.slice(0,-1));
     if (!assets.includes(`${prefix}SKILL.md`)) fail(`Missing local skill: ${name}`);
-    for (const asset of assets) files.set(asset.replace('.agents/', '.claude/'), { bytes: readRegular(root, asset), owner: 'local-projection' });
+    for (const asset of assets) files.set(asset.replace('.agents/', '.claude/'), { bytes: readRegular(root, asset), owner: 'local-projection', mode: fs.statSync(path.join(root,asset)).mode & 0o111 ? '100755' : '100644' });
   }
   files.set('.agents/sync.mjs', { bytes: get('agent-config/sync.mjs'), owner: 'tooling' });
   files.set('.agents/LICENSE.dev-skills', { bytes: get('LICENSE'), owner: 'shared-license' });
@@ -134,6 +134,7 @@ export function run(args = process.argv.slice(2)) {
     if (hash(actualBlock) !== previous.block_sha256) fail('Managed AGENTS block drift');
     for (const [file, record] of Object.entries(previous.files)) {
       if (hash(readRegular(root, file)) !== record.sha256) fail(`Managed file drift: ${file}`);
+      if (process.platform !== 'win32' && Boolean(fs.statSync(path.join(root,file)).mode & 0o111) !== (record.mode === '100755')) fail(`Managed executable mode drift: ${file}`);
     }
     const skills = [...previous.resolved_skills, ...manifest.local_skills].sort();
     for (const base of ['.agents/skills', '.claude/skills']) {
@@ -154,7 +155,10 @@ export function run(args = process.argv.slice(2)) {
     if (desired) {
       if (actualBlock !== desired.block || JSON.stringify(previous.resolved_skills) !== JSON.stringify(desired.resolved_skills)) fail('Upstream rule/dependency drift');
       if (JSON.stringify(Object.keys(previous.files).sort()) !== JSON.stringify([...desired.files.keys()].sort())) fail('Upstream asset inventory drift');
-      for (const [file, record] of desired.files) if (!readRegular(root, file).equals(record.bytes)) fail(`Upstream provenance drift: ${file}`);
+      for (const [file, record] of desired.files) {
+        if (!readRegular(root, file).equals(record.bytes)) fail(`Upstream provenance drift: ${file}`);
+        if ((previous.files[file].mode || '100644') !== (record.mode || '100644')) fail(`Upstream executable mode drift: ${file}`);
+      }
     }
     console.log(`Agent configuration passed (${previous.resolved_skills.length} shared, ${manifest.local_skills.length} local skills; ${source ? 'upstream verified' : 'offline'}).`);
     return;
@@ -190,10 +194,11 @@ export function run(args = process.argv.slice(2)) {
     if (fs.existsSync(destination) && fs.lstatSync(destination).isSymbolicLink()) fail(`Symlink output: ${file}`);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.writeFileSync(destination, record.bytes);
+    fs.chmodSync(destination, record.mode === '100755' ? 0o755 : 0o644);
   }
   fs.writeFileSync(path.join(root, 'AGENTS.md'), updated);
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest,null,2)}\n`);
-  fs.writeFileSync(lockPath, `${JSON.stringify({schema:1, manifest_sha256:digestManifest(manifest), block_sha256:hash(desired.block), resolved_skills:desired.resolved_skills, files:Object.fromEntries([...desired.files].sort(([a],[b]) => a.localeCompare(b)).map(([file,record]) => [file,{sha256:hash(record.bytes),owner:record.owner}]))},null,2)}\n`);
+  fs.writeFileSync(lockPath, `${JSON.stringify({schema:1, manifest_sha256:digestManifest(manifest), block_sha256:hash(desired.block), resolved_skills:desired.resolved_skills, files:Object.fromEntries([...desired.files].sort(([a],[b]) => a.localeCompare(b)).map(([file,record]) => [file,{sha256:hash(record.bytes),owner:record.owner,mode:record.mode || '100644'}]))},null,2)}\n`);
   console.log('Agent configuration generated. Commit the manifest, lock and generated files.');
 }
 
