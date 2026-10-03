@@ -2,6 +2,10 @@
 
 Cross-repo **engineering-methodology skills** — the dev-process scaffolding that has converged across [`onsager-ai/onsager`](https://github.com/onsager-ai/onsager), [`onsager-ai/onsager-skills`](https://github.com/onsager-ai/onsager-skills), [`onsager-ai/duhem`](https://github.com/onsager-ai/duhem), and [`codervisor/lean-spec`](https://github.com/codervisor/lean-spec) and is worth maintaining once in one place. Each repo previously carried its own copy; this bundle consolidates them so a single `npx skills add` installs the lot.
 
+## Agent configuration review
+
+The [Agent Configuration Standard v1 draft](docs/agent-configuration-v1.md) proposes repository-owned contracts, native harness adapters and pinned checkout-local workflows. See the [decision register](docs/agent-architecture-decisions.md) and [pilot adoption status](docs/agent-architecture-adoption.md). This remains a review proposal; current installation instructions below remain the existing distribution model.
+
 ## Install
 
 ```bash

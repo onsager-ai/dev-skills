@@ -13,7 +13,7 @@ This is the **repo-agnostic** half. The consumer repo's CLAUDE.md / `<repo>-dev-
 
 - **No `gh` CLI, no `hub`, no direct GitHub API.** Always use `mcp__github__*`.
 - Scope to the repo you're working on (and any sibling the repo's CLAUDE.md sanctions). Don't query unrelated repos.
-- Don't open PRs unless the user explicitly asks. Creating one is a one-way door in this workflow.
+- Opening, updating or merging a pull request requires authority supplied by the task or the repository's declared workflow policy. This procedure does not grant authority itself. Once authorized, perform the spec/trivial decision, relevant checks and accurate reporting before creating or updating the PR. Authority to open or update a PR does not by itself authorize merging it.
 
 ## Spec-issue linking (mandatory)
 

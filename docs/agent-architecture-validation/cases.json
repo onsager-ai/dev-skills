@@ -1,0 +1,62 @@
+[
+  {
+    "id": "native",
+    "path": "native",
+    "prompt": "Report instruction markers already supplied without reading instruction files solely for markers.",
+    "expected": "Root AGENTS available in Codex; Claude native availability depends on supported version/settings."
+  },
+  {
+    "id": "bridge",
+    "path": "bridge",
+    "prompt": "Report supplied instruction markers.",
+    "expected": "Shared root via native Codex or Claude import; Claude adapter marker only in Claude."
+  },
+  {
+    "id": "nested-root",
+    "path": "bridge",
+    "prompt": "Read module/src/example.txt and report supplied module markers.",
+    "expected": "Claude descendant import evaluated on file read; Codex root-start automatic descendant injection is measured, not presumed."
+  },
+  {
+    "id": "nested-cwd",
+    "path": "bridge/module",
+    "prompt": "Report supplied instruction markers.",
+    "expected": "Codex startup ancestor and module contract; Claude ancestor/import plus module contract."
+  },
+  {
+    "id": "override",
+    "path": "override",
+    "prompt": "Report supplied markers.",
+    "expected": "Codex selects override at root; Claude does not load AGENTS.override as native memory."
+  },
+  {
+    "id": "ancestor",
+    "path": "ancestor/child",
+    "prompt": "Report supplied markers.",
+    "expected": "Claude default sees ancestor CLAUDE rather than child native AGENTS; Codex uses child Git root AGENTS."
+  },
+  {
+    "id": "local-claude",
+    "path": "local-claude",
+    "prompt": "Report supplied markers.",
+    "expected": "Claude local file suppresses native AGENTS under default selection; Codex uses AGENTS."
+  },
+  {
+    "id": "skill-discovery",
+    "path": "bridge",
+    "prompt": "Invoke fixture-workflow through the native skill mechanism.",
+    "expected": "Both catalogs discover their respective skill location; skill returns SKILL=plum."
+  },
+  {
+    "id": "duplicate-skill",
+    "path": "duplicate",
+    "prompt": "List matching workflow identities and invoke fixture-workflow.",
+    "expected": "Record actual repo/personal skill selection; do not assume a common merge or priority rule."
+  },
+  {
+    "id": "offline-cloud",
+    "path": "bridge",
+    "prompt": "Invoke fixture-workflow with agent networking disabled in a fresh Cloud checkout.",
+    "expected": "Committed workflow available without a global installation; validate actual Cloud surface."
+  }
+]
