@@ -1,0 +1,1 @@
+Opening, updating or merging a pull request requires authority from the task or declared repository policy. Shared procedures grant no authority themselves; opening or updating authority does not authorize merging.

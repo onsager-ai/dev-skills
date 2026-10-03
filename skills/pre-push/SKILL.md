@@ -5,6 +5,10 @@ description: Run before pushing code on any repo that follows the spec-issue-dri
 
 # pre-push
 
+## Checkout-local use
+
+Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
+
 Mechanical checklist that catches the reviewer / CI failures a repo has actually had, plus a spec-link check that enforces the SDD loop locally — before the PR is open, so the author sees the problem locally instead of hearing it from a reviewer or a `pr-spec-sync` bot.
 
 This is the **repo-agnostic** half. Each consumer repo overlays its delta in its `CLAUDE.md` and its `<repo>-dev-process` sister skill:
@@ -82,7 +86,7 @@ Treat **any** warning as a blocker. Do not `#[allow(dead_code)]` / `@ts-ignore` 
 
 ### 3. Spec-issue link check
 
-Before pushing, confirm this branch corresponds to a known spec issue (or is explicitly trivial). This is the local enforcement of the SDD loop's spec-link rule.
+When the repository declares an SDD spec-link gate, confirm this branch corresponds to a known spec issue (or is explicitly trivial). Otherwise apply its declared contribution process without inventing a spec requirement. This is the local enforcement of the SDD loop's spec-link rule.
 
 1. **Find the spec issue.** Search open `spec`-labelled issues on the repo:
 

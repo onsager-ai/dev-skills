@@ -20,7 +20,7 @@ These decisions require organizational interpretation rather than a file rename.
 
 'Opening, updating or merging a pull request requires authority supplied by the task or the repository's declared workflow policy. This procedure does not grant authority itself. Once authorized, perform the spec/trivial decision, relevant checks and accurate reporting before creating or updating the PR.'
 
-This wording is implemented in the companion `pr-lifecycle` change and Duhem's proposed shared contract. Existing contradictory global installations remain migration debt until the reviewed change is merged and consumers update. The Claude adapter preserves the original session scope, editing mechanics and cloud defaults.
+This wording is implemented in the companion `pr-lifecycle` change and Duhem's proposed shared contract. The revised pilots vendor the corrected shared procedure locally, eliminating the global-install dependency; older personal installs are outside this rollout. The Claude adapter preserves the original session scope, editing mechanics and cloud defaults.
 
 ## Source links
 

@@ -1,13 +1,17 @@
 ---
 name: ci-triage
-description: Triage failed CI runs on a GitHub-Actions–driven repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with the global `pr-lifecycle` skill (PR-side CI triage) and the `web-testing` skill (invoked for `e2e` failures).
+description: Triage failed CI runs on a GitHub-Actions–driven repo — classify regression vs flake vs infra, maintain a single rolling `main-red` issue when main is broken, and point humans at the suspect commit. Use when a workflow fails on `main`, or when a human asks "is main red?", "why did CI fail on main?", "triage this workflow run", "classify this failure". Paired with the shared `pr-lifecycle` skill (PR-side CI triage) and the repository's browser-verification workflow (for `e2e` failures).
 ---
 
 # ci-triage
 
-Shared logic for classifying a failed CI workflow run and recording the outcome. Used by humans (or Claude in an interactive session) when triaging a red `main` workflow or a red check on an open PR — the latter via the global `pr-lifecycle` skill, whose CI-triage section delegates the taxonomy here.
+## Checkout-local use
 
-This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and the issue template. Repo-specific reproduction steps and failure patterns live in the consumer repo's CLAUDE.md / `<repo>-dev-process` (read by `pr-lifecycle`), and `e2e` classification is delegated to `web-testing`.
+Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
+
+Shared logic for classifying a failed CI workflow run and recording the outcome. Used by humans (or Claude in an interactive session) when triaging a red `main` workflow or a red check on an open PR — the latter via the shared `pr-lifecycle` skill, whose CI-triage section delegates the taxonomy here.
+
+This skill owns the taxonomy, the de-dup rules for the `main-red` issue, and the issue template. Repo-specific reproduction steps and failure patterns live in the consumer repo's CLAUDE.md / `<repo>-dev-process` (read by `pr-lifecycle`), and browser reproduction follows the repository's own fixtures and browser-verification workflow.
 
 ## Taxonomy
 
@@ -75,9 +79,9 @@ Keep the excerpt tight. Dumping the full log helps nobody.
 
 ## Reproducing locally
 
-Someone invoking this skill via the global `pr-lifecycle` skill should reproduce before filing, using the repo's check gate (named in its CLAUDE.md / `<repo>-dev-process`). For a `main` failure caught from outside a PR, check out `main` at the suspect SHA and run the same commands locally before filing.
+Someone invoking this skill via the shared `pr-lifecycle` skill should reproduce before filing, using the repo's check gate (named in its CLAUDE.md / `<repo>-dev-process`). For a `main` failure caught from outside a PR, check out `main` at the suspect SHA and run the same commands locally before filing.
 
-For `e2e` failures specifically, delegate classification to [`web-testing`'s triage mode](../web-testing/SKILL.md) — it handles regression-vs-flake for browser-driven tests (the ambiguous case).
+For `e2e` failures, use the repository's browser-verification workflow and its fixtures. Do not substitute another product's routes or require an uninstalled browser skill. If browser tooling is unavailable, report the reproduction as blocked.
 
 ## Log access
 
@@ -109,4 +113,4 @@ One of those alone is not enough. A deterministic regression can pass on the pri
 | Surface | Role |
 |---------|------|
 | [`pr-lifecycle`](../pr-lifecycle/SKILL.md) (global) | Interactive caller; its CI-triage section delegates the taxonomy here when triaging a red PR check. |
-| [`web-testing`](../web-testing/SKILL.md) | Delegated to for `e2e` workflow classification. |
+| Repository browser-verification workflow | Supplies product fixtures and `e2e` reproduction. |

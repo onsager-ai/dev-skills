@@ -18,14 +18,30 @@ and [Duhem spec #569](https://github.com/onsager-ai/duhem/issues/569).
 
 The requesting user approved D1's task/repository-supplied PR authority and D2's
 unchanged Claude-only scope. The shared procedure correction and Duhem contract
-implement that resolution together; older global installations require an update.
+implement that resolution together. Selected shared workflows are now vendored locally; personal global copies are no longer required.
 Opening/updating authority does not itself authorize merging. Duhem's existing
 Claude cloud defaults, session restriction and tool mechanics are retained.
 
-D3 (`semon-archive` maintenance status) and D4 (central governance ownership)
-remain pending. D5's stricter checkout parking rules remain intact. Central
-generation, manifests, shared-skill vendoring and tool-neutral rewriting remain
-subsequent work. No global installation or environment configuration is changed.
+D3 (`semon-archive` maintenance status) remains pending. The revised pilots use
+the existing dev-skills repository as their synchronization source; broader D4
+governance ownership remains an organization decision. D5's stricter checkout
+parking rules remain intact. No global installation or environment configuration
+is changed.
+
+## Checkout-local distribution
+
+The revised pilots check in selected shared workflows, complete referenced assets,
+an immutable source manifest, a drift lock, generated common AGENTS rules and
+regular Claude projections. The [generator](../agent-config/README.md) owns those
+artifacts. Repository-specific skills remain canonical locally. Generic SDD
+mechanics were removed from Duhem's overlay; product-specific schema/DX, worked
+example, scope and merge gates remain local.
+
+Each consumer gets a pinned-upstream CI check and a weekly draft-update workflow.
+It uses the built-in Actions token; GitHub must permit Actions-created PRs. No
+custom token, developer profile, global installer or session-time fetch is needed.
+Merge dev-skills before adopting the consumer pins. Physical copies are generated
+and checked, so changes have one authored source.
 
 ## Observed validation
 
@@ -37,9 +53,10 @@ subsequent work. No global installation or environment configuration is changed.
   materialized in an isolated worktree, explicitly replacing that symlink.
 - Final pilots have regular root contracts, native Claude imports, valid skill
   identity/trigger metadata, equal regular skill projections and valid authored
-  repository references. Duhem's local skill bytes, Claude session restriction,
-  editing workaround and cloud-default section match the source exactly.
-- `npm run check` passed in dev-skills: 18 skill frontmatters and 50 relative
+  repository references. Duhem's initial local skill copies matched the source. The revised local overlay
+  removes shared-method duplication; Claude session restriction, editing
+  workaround and cloud-default section still match the source exactly.
+- `npm run check` passed in dev-skills: 18 skill frontmatters and 48 relative
   links across 48 skill Markdown files. New documentation links were checked
   separately. `git diff --cached --check` passed for each proposal.
 

@@ -5,24 +5,28 @@ description: Manage a PR after it's been pushed on any repo that follows the spe
 
 # pr-lifecycle
 
+## Checkout-local use
+
+Read the repository AGENTS.md and its workflow overlay first. Repository policy owns scope, authorization, required gates and whether spec-issue linking is mandatory. These shared procedures supply method, not new repository policy. Dependencies are vendored with this skill; no global installation is required. Claude-specific tool names below are operation examples: use equivalent connected tools in the current harness and report unavailable capabilities.
+
 Everything that happens after `git push` on a PR: spec-issue linking, CI triage, review-comment discipline, webhook subscription + the post-push sweep, and the manual ticking of Plan items / umbrella trackers on merge.
 
 This is the **repo-agnostic** half. The consumer repo's CLAUDE.md / `<repo>-dev-process` overlays its CI-failure patterns, its scope (which repos this operates on), and any repo-local automation (a `pr-spec-sync` workflow, audit scripts) or the lack of it.
 
 ## Tool discipline
 
-- **No `gh` CLI, no `hub`, no direct GitHub API.** Always use `mcp__github__*`.
+- Use the GitHub tools available in the current harness and its configured authentication. Native tool names below illustrate operations; map them to the connected GitHub API or supported CLI. Do not require a personal MCP installation.
 - Scope to the repo you're working on (and any sibling the repo's CLAUDE.md sanctions). Don't query unrelated repos.
 - Opening, updating or merging a pull request requires authority supplied by the task or the repository's declared workflow policy. This procedure does not grant authority itself. Once authorized, perform the spec/trivial decision, relevant checks and accurate reporting before creating or updating the PR. Authority to open or update a PR does not by itself authorize merging it.
 
 ## Spec-issue linking (mandatory)
 
-Every PR must either:
+When the repository declares the SDD spec-link gate, every PR must either:
 
 1. Link to a spec issue in its body via `Closes #N` / `Fixes #N` / `Resolves #N` (slice complete) or `Part of #N` / `Refs #N` (scaffolding), **OR**
 2. Carry the `trivial` label (typo, doc-only, one-line obvious fix).
 
-If neither, the PR is out of process. Comment asking the author to add a spec link — creating one via `issue-spec` if none exists — or apply the `trivial` label.
+Under that declared gate, if neither is present, the PR is out of process. Comment asking the author to add a spec link — creating one via `issue-spec` if none exists — or apply the `trivial` label.
 
 ### Which keyword to use
 
@@ -85,7 +89,7 @@ Some issues are **umbrella trackers** that reference several sub-issues as a che
 
 ## CI triage
 
-For the classification taxonomy (`regression` / `flake` / `infra` / `needs-human`), suspect-commit identification, the log-access facts (`WebFetch` can't read authenticated Actions logs — 403; use `mcp__github__pull_request_read` `method: get_check_runs`), and the rolling `main-red` issue convention, use the `ci-triage` skill (installed globally from `onsager-ai/dev-skills`). This section covers only the PR-side specifics that `ci-triage` delegates back.
+For the classification taxonomy (`regression` / `flake` / `infra` / `needs-human`), suspect-commit identification, the log-access facts (`WebFetch` can't read authenticated Actions logs — 403; use `mcp__github__pull_request_read` `method: get_check_runs`), and the rolling `main-red` issue convention, use the `ci-triage` skill (vendored from `onsager-ai/dev-skills`). This section covers only the PR-side specifics that `ci-triage` delegates back.
 
 **Reproduce locally.** Once you have the failing step from `get_check_runs`, sync main and re-run that step with the exact flags from the repo's workflow yaml against the merged tree — the repo's check gate (see `pre-push` step 2 / the repo's CLAUDE.md) is the same set of commands CI runs. The repo's CLAUDE.md / `<repo>-dev-process` carries the repo-specific failure-pattern table (the recurring "passes locally, fails on CI" causes).
 
@@ -117,7 +121,7 @@ Automated reviewers (Copilot) sometimes flag idiomatic code as broken — verify
 
 Events from CI and reviewers arrive wrapped in `<github-webhook-activity>` tags; the harness forwards them as user messages.
 
-- Subscribe once per PR with `mcp__github__subscribe_pr_activity` after the PR is created (or the user asks you to watch it).
+- If the current harness supports subscriptions, subscribe once per PR with `mcp__github__subscribe_pr_activity` after the PR is created (or the user asks you to watch it).
 - Unsubscribe with `mcp__github__unsubscribe_pr_activity` when done — not strictly necessary but cleaner.
 - Treat each event as actionable; skip only if it's a duplicate of one you just addressed.
 
@@ -130,7 +134,7 @@ The subscription is **not** an "all CI events" feed. It's filtered to issue comm
 
 ### Post-push CI sweep (mandatory)
 
-Once the PR is open and you've subscribed, run this sweep **before declaring "all green" or ending the turn**:
+Once the PR is open, whether or not subscriptions are available, run this sweep **before declaring "all green" or ending the turn**:
 
 1. Read both surfaces explicitly: `pull_request_read` `method: get_status` (every commit status for the head SHA — treat any `state=failure` as actionable even if no webhook fired) and `pull_request_read` `method: get_check_runs` (every check_run — treat any `conclusion=failure` as actionable).
 2. Any check still `in_progress` or `queued` is **not** ground for "completed" — record a follow-up to re-poll ~5 min post-push and check it off only after a follow-up sweep shows the check finished. Don't sleep-poll inside the same turn; end the turn and let the user (or a subsequent webhook) bring you back.
@@ -147,6 +151,6 @@ After handling a webhook event, end with one or two sentences: what the failure 
 | Related surface | Role |
 |-----------------|------|
 | `<repo>-dev-process` | Top-level SDD loop; points here for the post-push stage, and overlays the repo's CI-failure patterns. |
-| `issue-spec` | Creates the spec issue this PR links to. Installed globally from `onsager-ai/dev-skills`. |
+| `issue-spec` | Creates the spec issue this PR links to. Vendored from `onsager-ai/dev-skills`. |
 | `pre-push` | Runs before `git push`; owns the conflict walkthrough and enforces the spec-link check locally. |
-| `ci-triage` | Shared failure taxonomy + `main-red` issue convention + log-access facts; called from this skill's CI triage flow. Installed globally from `onsager-ai/dev-skills`. |
+| `ci-triage` | Shared failure taxonomy + `main-red` issue convention + log-access facts; called from this skill's CI triage flow. Vendored from `onsager-ai/dev-skills`. |

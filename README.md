@@ -4,9 +4,9 @@ Cross-repo **engineering-methodology skills** — the dev-process scaffolding th
 
 ## Agent configuration review
 
-The [Agent Configuration Standard v1 draft](docs/agent-configuration-v1.md) proposes repository-owned contracts, native harness adapters and pinned checkout-local workflows. See the [decision register](docs/agent-architecture-decisions.md) and [pilot adoption status](docs/agent-architecture-adoption.md). This remains a review proposal; current installation instructions below remain the existing distribution model.
+The [Agent Configuration Standard v1 draft](docs/agent-configuration-v1.md) proposes repository-owned contracts, native harness adapters and pinned checkout-local workflows. See the [decision register](docs/agent-architecture-decisions.md) and [pilot adoption status](docs/agent-architecture-adoption.md). The standard remains a review proposal. The revised pilots use [checkout-local synchronization](agent-config/README.md), so a normal clone needs no personal installation.
 
-## Install
+## Legacy personal installation
 
 ```bash
 # Install every skill, user-global, for Claude Code.
@@ -21,7 +21,7 @@ To install a single skill, drop the `'*'`:
 npx skills add -g onsager-ai/dev-skills --skill plan-dag -a claude-code
 ```
 
-Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but for cross-repo dev skills the global install is the intended shape — one machine, one canonical copy.
+Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but the revised pilot distribution is checkout-local and checked in; personal installs are optional legacy usage.
 
 ## Skills
 
@@ -62,7 +62,7 @@ This bundle is the consolidation target for engineering-methodology skills used 
 
 1. Open a PR against this repo with the SKILL.md edit (and any accompanying `scripts/` / `references/` / `templates/` changes).
 2. Get it reviewed and merged.
-3. Re-run `npx skills add -g onsager-ai/dev-skills --skill '*' -a claude-code` in every consumer repo's working directory (or globally on each developer machine) to pick up the new version.
+3. Checkout-local consumers receive reviewed update PRs from their generated workflow. Legacy personal installs can be refreshed manually.
 
 The installed copies under `~/.claude/skills/` are **read-only**. Consumer repos that include the `check-skill-edit.sh` PreToolUse hook will block direct edits to any installed copy that carries a `.upstream-source` marker — the fix is to PR upstream and re-run `npx skills add`.
 
