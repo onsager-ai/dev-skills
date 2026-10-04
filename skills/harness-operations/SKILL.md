@@ -1,6 +1,6 @@
 ---
 name: harness-operations
-description: Map a workflow operation to the tools and instruction-discovery mechanisms actually available in Claude Code or Codex. Use when a common or repository skill needs file, GitHub, check/log or subscription capabilities, or when discovery/authentication is uncertain.
+description: Map a workflow operation to the tools and instruction-discovery mechanisms actually available in Claude Code or Codex. Use when a common or repository skill needs structured human questions, file, GitHub, check/log or subscription capabilities, or when discovery/authentication is uncertain.
 ---
 
 # Harness operations
@@ -34,10 +34,18 @@ authentication. A checked-in skill does not provision a connector, CLI or token.
    metadata, log bodies, commit statuses and subscriptions may have different
    availability. Avoid a blanket claim that a connector cannot read logs. Retain
    the actual error and use an equivalent exposed capability where available.
-5. Preserve configured identity, proxy and trust. Never print credentials, inspect
+5. For a pending human decision, use the exposed, permitted structured question
+   tool from the matching native reference. Include the concrete choice, context
+   and tradeoffs; wait for an explicit answer before dependent work and reconcile
+   the decision record. Continue independent authorized work. A plain-text question
+   or checklist is not a substitute for an available question tool. Do not re-ask
+   settled decisions or treat silence/default selections as approval. If the
+   question capability is unavailable, state the limitation and use the established
+   human handoff channel; native permission and product approval gates still apply.
+6. Preserve configured identity, proxy and trust. Never print credentials, inspect
    secret files for values, dump the environment, or replace credentials because
    a token is not visible. Diagnose 401/403 using current runtime observations.
-6. If no equivalent exists, finish independent work and report the exact blocked
+7. If no equivalent exists, finish independent work and report the exact blocked
    operation. Do not turn missing subscriptions into invented background monitoring
    or missing publication into a claim that an issue/PR was created.
 

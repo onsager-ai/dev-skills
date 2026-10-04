@@ -21,3 +21,7 @@ Load this reference only in an observed Claude Code session.
   Treat hook enforcement separately from prose guidance. Do not claim that a
   file's presence proves root/module injection or that one Claude surface proves
   another; verify current context and skill catalog on the actual target version.
+
+## Human decision requests
+
+Use `AskUserQuestion` for a pending human choice, clarification or required confirmation when the tool is exposed and permitted. Put the concrete decision and sufficient context in its question, with concise options and tradeoffs under the actual schema. A plain-text question or final-response checklist does not substitute for the tool call. Wait for the answer before dependent work; continue independent authorized work. Do not re-ask a decision already settled by the task. If an unattended surface has no answer channel, report the limitation and use its established durable handoff; never infer approval. Native permission dialogs remain native permission gates.

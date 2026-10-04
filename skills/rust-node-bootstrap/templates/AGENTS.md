@@ -51,3 +51,7 @@ Manual version bump:
 npm version patch     # Bump version in root package.json
 pnpm tsx scripts/sync-versions.ts  # Propagate to all packages
 ```
+
+## Human decisions
+
+When a concrete decision remains for a human, use the available structured question tool: `AskUserQuestion` in Claude Code, or `request_user_input` / `request_user_input_async` in Codex where exposed and permitted. Do not leave the decision only in a plain-text question, final response, or "Human decides" checklist. State the decision, relevant context, options and tradeoffs in the tool call; wait for an explicit answer before dependent work and reconcile it into the spec or decision record. Continue independent authorized work and do not re-ask settled decisions. If no permitted question tool is available, state that limitation and the unresolved decision, keep dependent work blocked, and use the repository's established human handoff channel. Silence, elapsed time and a recommended option are not approval.

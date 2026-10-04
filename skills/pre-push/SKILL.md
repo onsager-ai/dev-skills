@@ -53,6 +53,12 @@ and base branch, which may differ from main. Load
 7. Hand PR creation/update and its check sweep to
    [pr-lifecycle](../pr-lifecycle/SKILL.md).
 
+Request any unresolved human decision through the structured question capability
+in [harness-operations](../harness-operations/SKILL.md), with the affected scope
+and options. Wait before dependent publication; continue independent authorized
+checks. A final-response blocker list alone is insufficient when the tool is
+available. If unavailable, state the limitation and use the established handoff.
+
 ## Completion
 
 Record branch/base/head SHAs, actual gate results, missing prerequisites and
