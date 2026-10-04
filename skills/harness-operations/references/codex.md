@@ -24,3 +24,22 @@ Load this reference only in an observed Codex session.
   agent networking, setup dependencies and cache reuse are separate axes. Checked-in
   workflows eliminate personal skill installation; they do not provision product
   build dependencies or prove Cloud instruction injection.
+
+## Human decision requests
+
+Follow the current Codex system/developer instructions and exposed tool catalog
+for question capabilities, schemas, permitted purposes and mode restrictions.
+Where supported, `request_user_input` is the structured question tool; do not
+assume it is available or permitted in every mode. Some surfaces expose
+`request_user_input_async`; follow that surface's contract if using it, without
+making asynchronous delivery a shared requirement or preferring it by default.
+Availability alone does not grant permission to use a tool for a prohibited
+purpose. Do not switch modes just to evade a question-tool restriction.
+
+Use a supported, permitted question tool for unresolved human decisions. A
+plain-text question or final-response checklist does not substitute for such a
+tool. Regardless of delivery mechanics, wait for an explicit answer before
+dependent work and continue independent authorized work. Do not re-ask settled
+decisions. If no permitted question tool or answer channel exists, state the
+limitation and use the established human handoff channel; keep dependent work
+blocked and never treat silence, elapsed time or defaults as approval.

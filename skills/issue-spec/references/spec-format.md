@@ -25,7 +25,12 @@ An explicit task or existing policy can already authorize implementation. Put a
 decision under Human decides only when it crosses a concrete unresolved boundary;
 name the source and affected deliverables. Put authorized implementation under
 AI implements. Open questions block only the dependent work, not independent work
-within the existing authorization. When answered, update the question/decision in
+within the existing authorization. Request a pending human decision through the
+structured question capability mapped by
+[harness-operations](../../harness-operations/SKILL.md); listing it here or in a
+plain-text response alone is insufficient when that tool is available. If it is
+unavailable, state the limitation and use the established human handoff channel.
+Wait for an explicit answer before dependent work. When answered, update the question/decision in
 the same sitting; comments alone do not reconcile stale blocker state.
 
 ## GitHub issue representation

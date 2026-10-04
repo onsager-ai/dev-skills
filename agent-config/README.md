@@ -28,6 +28,10 @@ sources. CI compares them with the exact pinned upstream and rejects changes,
 missing/extra assets, name collisions, stale local projections and altered managed
 prompts. Local checks work offline; upstream verification adds provenance proof.
 
+The optional `human-decisions` rule requires structured question calls for
+unresolved human choices. Select it in consumer manifests to load this guidance
+in every session; harness-operations maps Claude and Codex question capabilities.
+
 ## Consumer configuration
 
 The checked-in `.agents/manifest.json` declares schema 1, source repository

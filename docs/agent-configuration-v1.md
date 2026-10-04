@@ -80,6 +80,25 @@ Personal reporting style, preference for options, generic autonomy, reasoning ef
 
 Publishing authority, credential changes, spending, public reachability, signing and product-specific gate boundaries MUST retain their declared repository/organization ownership. A statement such as 'state the call, do not ask' must not obscure those boundaries.
 
+## Human decision requests
+
+When a concrete human decision remains unresolved, adopted interactive prompts
+and skills MUST use the current harness's supported structured question capability
+under its native instructions, tool contract and mode restrictions. Tool names
+and mechanics belong in the matching harness-operations native reference, not
+in common rules or skill bodies. A plain-text question, final-response list or Human decides
+checkbox alone MUST NOT substitute for an available tool call. Include context,
+options and tradeoffs, wait for an explicit answer before dependent work, and
+reconcile the decision record. Continue independent authorized work; do not
+re-ask settled decisions. Silence, elapsed time and recommended defaults are not
+approval. If no permitted question tool exists, state the limitation and use the
+established human handoff channel. Unattended product protocols, native
+permission gates and dashboard approvals retain their existing authority and
+recording requirements; a question-tool answer does not replace them.
+
+The shared `human-decisions` rule is selected explicitly in consumer manifests;
+native mappings belong in harness-operations.
+
 ## Cross-repository distribution
 
 The proposed canonical engineering source is `onsager-ai/dev-skills`. Keep product operation in `onsager-skills`; keep Ostrom's shipped behavior and operator policies independent.

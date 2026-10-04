@@ -51,7 +51,14 @@ observed; do not assume all connectors expose the same fields or limitations.
 | regression | Deterministic failure tied to the tested change or its merged interaction | Reproduce and repair the demonstrated defect |
 | flake | Same comparable inputs alternate outcomes, with evidence of a nondeterministic cause | Record/retry and address the cause |
 | infra | Runner, service, network or dependency provisioning failed independently of product assertions | Repair/retry the environment |
-| needs-human | Evidence or authority is insufficient for a reliable diagnosis | State the missing observation or decision |
+| needs-human | Evidence or authority is insufficient for a reliable diagnosis | Gather available evidence; request any pending human decision through the structured question capability in harness-operations |
+
+If a human must choose the next action or supply missing context, use the
+structured question capability in
+[harness-operations](../harness-operations/SKILL.md), then wait before dependent
+work. A plain-text needs-human report alone does not request that decision when
+the tool is available. If unavailable, state the limitation and use the established
+handoff channel. Missing infrastructure alone does not require a human choice.
 
 ## Completion
 

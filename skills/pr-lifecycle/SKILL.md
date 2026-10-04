@@ -37,7 +37,11 @@ when needed; subscriptions and a specific GitHub tool are not prerequisites.
    A skipped required gate or an absent result is not a pass.
 4. Delegate failure classification to [ci-triage](../ci-triage/SKILL.md). Reproduce
    using repo-owned gates/fixtures. Fix defects within scope; report blocked logs,
-   setup or human decisions. For conflicts use pre-push's local reconciliation
+   setup. Request pending human decisions through the structured question
+   capability in [harness-operations](../harness-operations/SKILL.md), with context
+   and options, and wait before dependent work; reporting them in the final reply
+   alone is insufficient when that tool is available. If unavailable, state the
+   limitation and use the established handoff channel. For conflicts use pre-push's local reconciliation
    and rerun checks on the resulting tree; do not use the web conflict editor as
    a substitute for local validation.
 5. Address review findings in coherent commits. Reply where explaining a decision,

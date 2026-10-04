@@ -22,12 +22,22 @@ for (const name of [...common, 'harness-operations']) {
 for (const name of common) {
   for (const file of markdown(path.join(root, 'skills', name))) {
     const text = fs.readFileSync(file, 'utf8');
-    if (/mcp__|CLAUDE\.md|\.claude\/|claude\/spec-|WebFetch|allowed-tools:/i.test(text)) {
+    if (/mcp__|CLAUDE\.md|\.claude\/|claude\/spec-|WebFetch|allowed-tools:|AskUserQuestion|request_user_input(?:_async)?/i.test(text)) {
       errors.push(`${path.relative(root,file)}: native mechanics belong in harness-operations references`);
     }
     if (/installed globally|global installation is required|log bodies are not reliably accessible/i.test(text)) {
       errors.push(`${path.relative(root,file)}: stale installation/capability assumption`);
     }
+  }
+}
+// Question-tool variants belong in native adapters, never portable guidance.
+for (const relative of [
+  'agent-config/rules/human-decisions.md',
+  'skills/rust-node-bootstrap/templates/AGENTS.md',
+  'skills/railway/SKILL.md',
+]) {
+  if (/AskUserQuestion|request_user_input(?:_async)?/.test(fs.readFileSync(path.join(root, relative), 'utf8'))) {
+    errors.push(`${relative}: question-tool names belong in harness-operations references`);
   }
 }
 if (errors.length) {

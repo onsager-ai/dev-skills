@@ -32,9 +32,15 @@ Read the [format reference](references/spec-format.md) when drafting and use the
    impact/example sections. Keep the spec near 2000 tokens or less; split a larger
    feature into a parent and independently scoped children.
 3. State boundaries in Alignment. Proceed with already authorized implementation
-   decisions. Ask only about a concrete unresolved boundary needed for the work;
-   name its source and affected Plan items. Reconcile an answer into the spec in
-   the same sitting. Do not leave answered questions marked as blockers.
+   decisions. For a concrete unresolved human boundary needed for the work, use
+   the structured question capability mapped by
+   [harness-operations](../harness-operations/SKILL.md); name its source, affected
+   Plan items, options and tradeoffs. A plain-text question or Human decides
+   checklist alone does not request the decision. Wait for an explicit answer
+   before dependent work; continue independent authorized work. Reconcile the
+   answer into the spec in the same sitting and clear answered blockers. If no
+   permitted question tool exists, state that limitation and use the established
+   handoff channel without assuming an answer.
 4. Validate scope, invariants, test coverage, dependencies and required labels.
    In GitHub bodies keep each prose paragraph or list item on one source line;
    blank lines separate blocks. Do not mark Plan items complete before delivery.

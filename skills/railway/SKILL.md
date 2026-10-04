@@ -344,3 +344,7 @@ These scripts demonstrate the wrapping pattern; another repo adopting this skill
 - The repo's spec-driven dev-process skill — when the fix is a code change, not just an ops lever; that's where the spec / branch / PR loop lives. This skill picks up at the deploy step.
 - `plan-dag` — when the operator question is really "what's still blocking the deploy?" rather than "deploy this thing".
 - Railway's own AI surfaces — `railway agent -p "<question>"` runs an interactive assistant inside the CLI, and `railway mcp install` wires Railway's MCP server into Claude Code / Cursor / Codex. Useful as a fallback when this skill's scripted flow isn't enough, but they're not a substitute for the explicit JSON-first loop above — they're for exploratory questions, not for reproducible automation.
+
+## Human decisions
+
+When this procedure requires a human choice, clarification or confirmation, use the current harness's supported structured question tool under its native instructions and tool contract; resolve mechanics through [harness-operations](../harness-operations/SKILL.md). Include the exact project, service, environment, operation and tradeoffs; wait for an explicit answer before dependent work. Do not leave the request only in prose. If no permitted question tool exists, state the limitation and use the established human handoff channel without assuming approval.

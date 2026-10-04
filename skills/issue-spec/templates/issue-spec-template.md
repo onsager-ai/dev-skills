@@ -30,13 +30,13 @@
 ## Alignment
 
 ### Human decides
-- [ ] <!-- Decision requiring judgment, context, or authority -->
+- [ ] <!-- Unresolved human decision; request it through the structured question capability in harness-operations, not only this checklist. -->
 
 ### AI implements
 - [ ] <!-- Concrete task tied to plan items above -->
 
 ### Open questions
-<!-- Remove this subsection if none. Questions block implementation. -->
+<!-- Remove this subsection if none. Request decisions through the structured question tool; unresolved questions block only dependent implementation. -->
 
 > <!-- Question with enough context to answer -->
 > Impact: <!-- Which plan items are affected -->
