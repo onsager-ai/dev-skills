@@ -27,4 +27,19 @@ Load this reference only in an observed Codex session.
 
 ## Human decision requests
 
-Use the exposed structured question capability (`request_user_input` or `request_user_input_async`) under its current schema and mode restrictions for pending human decisions. Prefer a permitted asynchronous tool when the synchronous tool is unavailable in the current mode. These are the Codex equivalents of Claude Code's `AskUserQuestion`; do not invent a Claude tool in Codex. A plain-text question or final-response checklist does not substitute for an available permitted tool. Keep dependent work blocked until an explicit answer arrives, including after an asynchronous call; continue independent authorized work. Do not re-ask settled decisions. If no permitted question tool exists, state that limitation and use the established handoff channel without treating silence or elapsed time as approval.
+Follow the current Codex system/developer instructions and exposed tool catalog
+for question capabilities, schemas, permitted purposes and mode restrictions.
+Where supported, `request_user_input` is the structured question tool; do not
+assume it is available or permitted in every mode. Some surfaces expose
+`request_user_input_async`; follow that surface's contract if using it, without
+making asynchronous delivery a shared requirement or preferring it by default.
+Availability alone does not grant permission to use a tool for a prohibited
+purpose. Do not switch modes just to evade a question-tool restriction.
+
+Use a supported, permitted question tool for unresolved human decisions. A
+plain-text question or final-response checklist does not substitute for such a
+tool. Regardless of delivery mechanics, wait for an explicit answer before
+dependent work and continue independent authorized work. Do not re-ask settled
+decisions. If no permitted question tool or answer channel exists, state the
+limitation and use the established human handoff channel; keep dependent work
+blocked and never treat silence, elapsed time or defaults as approval.

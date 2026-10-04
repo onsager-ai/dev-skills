@@ -347,4 +347,4 @@ These scripts demonstrate the wrapping pattern; another repo adopting this skill
 
 ## Human decisions
 
-When this procedure requires a human choice, clarification or confirmation, use the available structured question tool (`AskUserQuestion` in Claude Code, or the exposed and permitted Codex question tool). Include the exact project, service, environment, operation and tradeoffs; wait for an explicit answer before dependent work. Do not leave the request only in prose. If no permitted question tool exists, state the limitation and use the established human handoff channel without assuming approval.
+When this procedure requires a human choice, clarification or confirmation, use the current harness's supported structured question tool under its native instructions and tool contract; resolve mechanics through [harness-operations](../harness-operations/SKILL.md). Include the exact project, service, environment, operation and tradeoffs; wait for an explicit answer before dependent work. Do not leave the request only in prose. If no permitted question tool exists, state the limitation and use the established human handoff channel without assuming approval.

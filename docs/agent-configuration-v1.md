@@ -83,9 +83,10 @@ Publishing authority, credential changes, spending, public reachability, signing
 ## Human decision requests
 
 When a concrete human decision remains unresolved, adopted interactive prompts
-and skills MUST use the exposed and permitted structured question capability:
-`AskUserQuestion` in Claude Code, or the available Codex equivalent described by
-harness-operations. A plain-text question, final-response list or Human decides
+and skills MUST use the current harness's supported structured question capability
+under its native instructions, tool contract and mode restrictions. Tool names
+and mechanics belong in the matching harness-operations native reference, not
+in common rules or skill bodies. A plain-text question, final-response list or Human decides
 checkbox alone MUST NOT substitute for an available tool call. Include context,
 options and tradeoffs, wait for an explicit answer before dependent work, and
 reconcile the decision record. Continue independent authorized work; do not
