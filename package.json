@@ -18,7 +18,7 @@
     "check:frontmatter": "node scripts/check-frontmatter.mjs",
     "check:links": "node scripts/check-links.mjs",
     "check:agent-config": "node agent-config/check-content.mjs && node --test agent-config/sync.test.mjs",
-    "check": "npm run check:frontmatter && npm run check:links && npm run check:agent-config"
+    "check": "npm run check:frontmatter && npm run check:links && npm run check:agent-config && node --test scripts/railway-debug.test.mjs"
   },
   "keywords": [
     "claude",
