@@ -1,14 +1,30 @@
 ---
 name: railway
-description: Debug, develop, and operate apps hosted on Railway (railway.com) from the CLI — list projects/services, tail and filter build/deploy/HTTP logs, read metrics, inspect and set variables, deploy from the current directory, redeploy / restart / roll back, run local commands with the service's env, SSH into containers, and open a DB shell. Authenticates via the `RAILWAY_TOKEN` environment variable (account token, or project-scoped token). Optional bundled scripts (`scripts/preflight.sh`, `scripts/debug.sh`, `scripts/smoke.sh`) are Onsager-specific wrappers — other repos can ignore them or fork. Triggers include "deploy to railway", "railway deploy this", "railway logs", "tail railway logs", "why is my railway service crashing", "why did the build fail on railway", "railway 500s", "railway latency", "show railway http logs", "redeploy on railway", "restart my railway service", "roll back railway", "set a railway env var", "list railway variables", "railway metrics", "is my railway service healthy", "connect to my railway postgres", "ssh into railway", "run this locally with railway env", "list railway projects/services/deployments", and (Onsager-specific) "check railway", "preflight", "smoke test", "is the deploy healthy".
+description: Debug, develop, and operate apps hosted on Railway (railway.com) from the CLI — list projects/services, tail and filter build/deploy/HTTP logs, read metrics, inspect and set variables, deploy from the current directory, redeploy / restart / roll back, run local commands with the service's env, SSH into containers, and open a DB shell. Uses an available authenticated Railway connector or CLI; repository deployment policy determines the release route. Optional bundled scripts (`scripts/preflight.sh`, `scripts/debug.sh`, `scripts/smoke.sh`) are Onsager-specific wrappers — other repos can ignore them or fork. Triggers include "deploy to railway", "railway deploy this", "railway logs", "tail railway logs", "why is my railway service crashing", "why did the build fail on railway", "railway 500s", "railway latency", "show railway http logs", "redeploy on railway", "restart my railway service", "roll back railway", "set a railway env var", "list railway variables", "railway metrics", "is my railway service healthy", "connect to my railway postgres", "ssh into railway", "run this locally with railway env", "list railway projects/services/deployments", and (Onsager-specific) "check railway", "preflight", "smoke test", "is the deploy healthy".
 allowed-tools: Bash(railway:*), Bash(npm install -g @railway/cli:*), Bash(which railway), Bash(jq:*), Bash(sh *), Bash(bash *), Bash(curl *), Bash(agent-browser:*), Bash(npx agent-browser:*), Bash(just *), Read, Write, Edit
 ---
 
 # railway
 
-One skill for the full Railway operator loop: **status → debug → fix → deploy → verify**. It wraps the `railway` CLI in a non-interactive, JSON-first style that an agent can drive without prompts, and it leans on `RAILWAY_TOKEN` from the environment instead of an interactive `railway login`.
+Use the smallest available Railway operation needed for the task. Read the
+repository's AGENTS.md and deployment policy before selecting a deployment route.
+A GitHub-driven pipeline takes precedence over the generic CLI examples below.
+This skill supplies tool mechanics, not authority to bypass that pipeline.
 
-This skill is **repo-agnostic**. It assumes the project is hosted on Railway (railway.com) and that a `RAILWAY_TOKEN` is exported in the environment. It makes no assumptions about the stack (Node, Python, Go, Docker, Nixpacks/Railpack — Railway's builder figures it out).
+## Deployment route and authorization
+
+- For repository code changes, prepare the branch/PR and use the declared CI/CD
+  trigger. On a GitHub-driven service, observe the matching commit deployment;
+  do not upload a checkout, change source branches/pins or manually apply platform
+  patches merely to trigger redeployment.
+- A manual restart, redeploy or source/configuration change needs an operational
+  reason within the user's authorized scope, such as recovery from a diagnosed
+  failed rollout. Record the reason, exact environment/service and expected effect.
+- Reuse existing authorization for that action and scope. Request a decision only
+  for unresolved intent, destructive impact or additional scope. Read-only diagnosis,
+  reversible code fixes and PR preparation do not require another confirmation.
+- Testing evidence is reported separately from runtime capability and authorization.
+  Do not require a new qualification report or checklist as permission to test.
 
 ## When this skill triggers
 
@@ -45,11 +61,20 @@ Skip when:
 
 ## Prerequisites
 
-1. **CLI on PATH.** `which railway` should resolve. If not, install: `npm install -g @railway/cli` (or use the official installer at https://docs.railway.com/guides/cli). Minimum version: 4.x (this skill assumes the modern subcommand layout — `service list`, `deployment list`, `logs --filter`, `--json` on most commands).
-2. **Auth via env var.** `echo "${RAILWAY_TOKEN:0:8}…"` should print a non-empty prefix. The CLI reads `RAILWAY_TOKEN` directly — **do not** run `railway login` in agent sessions. Two token shapes exist:
-   - **Account / personal token** (created at https://railway.com/account/tokens) — works across every workspace, project, and environment the user has access to. Required for `railway list`, `railway link --workspace`, and any cross-project view.
-   - **Project token** (created in a project's Settings → Tokens, scoped to one project+environment) — works for that single project/env. `railway list` and other workspace-level commands return `Unauthorized` with this kind; `railway status`, `railway logs`, `railway up`, `railway variable …` all work. First call that returns `Unauthorized` / `Invalid RAILWAY_TOKEN` is the signal to ask the user which shape they configured and whether they need to widen scope.
-3. **No interactive prompts.** Always pass explicit `--project / --service / --environment` flags (and `--json`, `-y`, `--ci` where they exist) instead of relying on linked state. Linked state is a `.railway/` directory and survives across CLI calls, but in fresh agent sessions there is no link yet — set the scope every call until the user explicitly asks to link.
+1. Inspect the available tool catalog. Use an authenticated Railway connector for
+   supported platform reads; use the CLI for local checkout, SSH or exact command
+   workflows. Neither a global CLI install nor a visible token is required when
+   an equivalent configured connector exists.
+2. On the CLI path, check `command -v railway` and `railway --version`, then use a
+   bounded account/project read to diagnose authentication. Never print a token,
+   token prefix or the environment. Reuse CLI login or injected credentials.
+   `RAILWAY_API_TOKEN` is account-scoped; `RAILWAY_TOKEN` is project/environment-scoped.
+   A denied workspace listing does not establish that a project-scoped read fails.
+3. Resolve explicit project, environment and service IDs. Read-only discovery
+   must not modify linked context. Diagnose a command's actual 401/403, unsupported
+   flag or missing tool before asking for installation, login or wider access.
+   Use an equivalent configured capability first. Install/update tooling only when
+   needed for the requested operation and within its authorized scope.
 
 ## Operating procedure
 
@@ -172,7 +197,7 @@ railway metrics --all --json \
 
 Read these together with the deploy log: a memory line climbing into the service's limit followed by a sudden gap is an OOM; sustained CPU at 100% with growing p95 is a throttle. Don't editorialise beyond what the numbers show.
 
-### Step 4 — variables (read-only first, write only on confirmation)
+### Step 4 — variables (read-only first, writes within authorized scope)
 
 Variables are usually where misconfiguration hides. **Listing variables prints secret values** — treat the output as confidential, never echo raw values back into the chat, and use `--json` so you can summarise (key names + value lengths) instead of pasting plaintext secrets.
 
@@ -181,7 +206,7 @@ Variables are usually where misconfiguration hides. **Listing variables prints s
 railway variable list --json \
   --project "$PROJECT_ID" --service api --environment production
 
-# Write — explicit confirmation required before running.
+# Write only for the selected target within existing authorization.
 railway variable set "FEATURE_FLAG=on" \
   --project "$PROJECT_ID" --service api --environment production
 # Setting a variable triggers a redeploy by default; add --skip-deploys
@@ -192,7 +217,11 @@ railway variable delete FEATURE_FLAG \
   --project "$PROJECT_ID" --service api --environment production
 ```
 
-Default to listing first ("here are the keys configured on production; which one do you want to change?") and only run `set` / `delete` after the user picks a target. For new secrets, prefer reading from stdin so the plaintext never enters the agent's argv buffer (visible in `ps`): pipe the value into `railway variable set --stdin KEY` (a top-level option on the legacy `variable` form; the modern flow is `railway variable set "KEY=$(< file)"` from a local file the user controls).
+Read variable names first; inspect values privately only when diagnosis requires
+it. If the user already named the target and change, do not ask them to pick it
+again. Deliver new secrets through the supported private mechanism; never echo
+them or put them in prompts, logs or diagnostic command output. Check the installed
+CLI's supported stdin/private input interface rather than inventing a flag.
 
 ### Step 5 — fix and deploy
 
@@ -202,9 +231,9 @@ Three deploy verbs, in increasing order of intent:
 |---|---|---|
 | `railway restart` | Restart the latest deployment without rebuilding. | Process is wedged but the build artefact is fine. |
 | `railway redeploy` | Re-run the latest deployment (or `--from-source` to pull the newest commit / image). | A transient failure or you want to redeploy the *same* artefact. Use `--from-source` to pick up new commits without uploading. |
-| `railway up` | Upload the current working directory and deploy it. | The fix is a code change in this repo. |
+| `railway up` | Upload the current working directory and deploy it. | An explicitly selected upload deployment with no conflicting repository pipeline. |
 
-Non-interactive defaults:
+CLI mechanics for an authorized manual operation (not the default CI/CD route):
 
 ```bash
 # Restart (no rebuild). -y skips the confirmation dialog.
@@ -274,7 +303,7 @@ railway connect postgres \
 
 ### `Unauthorized. Please check that your RAILWAY_TOKEN is valid`
 
-Either no token, an expired one, or a **project-scoped** token being used against a workspace-level command (`railway list`, `railway link --workspace`). Ask the user which token shape they configured; if they need workspace-level commands, they need an account token from https://railway.com/account/tokens.
+Check the actual command scope and available configured identity. A project-scoped credential may work for project reads while workspace listing fails. Try the required project read or equivalent authenticated connector first. Request additional access only if that operation cannot be completed with existing capabilities; never print credential material.
 
 ### Build `FAILED`, deploy log empty
 
@@ -309,15 +338,15 @@ You forgot `--ci`. The default mode attaches a live pager that doesn't exit. Kil
 
 ### Variable changes "didn't take effect"
 
-`railway variable set` triggers a redeploy by default — but if `--skip-deploys` was passed, the variable is staged and the running deployment still has the old value. Either redeploy explicitly (`railway redeploy -y`) or rerun the set without `--skip-deploys`.
+`railway variable set` triggers a redeploy by default — but if `--skip-deploys` was passed, the variable is staged and the running deployment still has the old value. Inspect the pending change and the repository rollout procedure. Apply or redeploy only when that operational action is authorized and compatible with the pipeline; do not use it simply to force a code rollout.
 
 ## Conventions
 
 - **JSON-first.** Add `--json` to every command that supports it, and parse with `jq` rather than scraping human-readable output. Layouts change; the JSON keys are stable.
 - **Explicit scope every call.** Pass `--project`, `--service`, `--environment` on every command in an agent session. Don't rely on `.railway/` linked state — it's invisible to the user and confusing when it drifts.
 - **Non-streaming logs by default.** Always combine with `--lines`, `--since`, or `--until`. Streaming is for humans at a terminal, not agents.
-- **Never paste secrets.** `railway variable list`, `railway run env`, and `railway shell` all surface plaintext secrets. Summarise (key names, value lengths) instead. If the user explicitly asks for a value, paste it in a code block and remind them it's a secret.
-- **Confirm before destructive ops.** `railway down`, `railway restart`, `railway redeploy`, `railway variable delete`, `railway environment delete`, `railway volume delete`, `railway delete` (the project!) all change live state. Repeat the scope back to the user ("restart `api` in `production` of project `…`?") and wait for explicit confirmation, even if `-y` is technically available.
+- **Never paste secrets.** `railway variable list`, `railway run env`, and `railway shell` all surface plaintext secrets. Summarise (key names, value lengths) instead. Use the supported private delivery mechanism when the user needs a secret; ordinary diagnostic output should contain names and safe status only.
+- **Preserve action scope.** Reuse existing authorization for restart/redeploy/configuration work. For deletion or an action outside that scope, establish concrete intent and impact before proceeding. A non-interactive flag supplies no authority.
 - **Verify after deploy.** Don't end on a `railway up --ci` success line. Pull the latest deployment's status and a 50-line log sample so the user sees the actual runtime state, not just the build outcome.
 - **One failure mode per investigation.** Build vs. crashloop vs. 5xx vs. OOM are distinct shapes with distinct log streams. Don't blend their tails in one report.
 
@@ -334,7 +363,7 @@ When in the Onsager repo:
 | Verify live deploy | `sh scripts/smoke.sh [url]` |
 
 - **`preflight.sh`** — runs before any deploy or while triaging a build failure. Checks lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) are tracked in git, Dockerfile COPY sources resolve, Railway vars don't leak `localhost`, and `DATABASE_URL` points at the Railway Postgres plugin. Exits non-zero on any failure; skips Railway variable checks if `ONSAGER_RAILWAY_TOKEN` is not set.
-- **`debug.sh [service]`** — one-shot diagnostics for a failed or stuck deploy: service status, build logs (40 lines), deploy/runtime logs (40), error-only logs (20), HTTP 4xx/5xx (10), env vars. Default service `onsager`. Requires `ONSAGER_RAILWAY_TOKEN`.
+- **`debug.sh [service]`** — one-shot diagnostics for a failed or stuck deploy: service status, build logs (40 lines), deploy/runtime logs (40), error-only logs (20), HTTP 4xx/5xx (10), variable names only (requires Python 3). Default service `onsager`. Reuses configured CLI authentication; optionally maps `ONSAGER_RAILWAY_TOKEN`. Provider logs may still contain private application data and require private review.
 - **`smoke.sh [base_url]`** — post-deploy verification: API checks via `curl` (`/api/health`, `/api/auth/me`, `/api/nodes`, `/api/sessions`) and optional UI checks via `agent-browser` (`/`, `/sessions`, `/nodes`, `/settings`). Default URL `https://onsager-production.up.railway.app`. UI checks skip gracefully if `agent-browser` is not on PATH.
 
 These scripts demonstrate the wrapping pattern; another repo adopting this skill should fork the directory and re-shape the script bodies for its own deployment.
@@ -347,4 +376,5 @@ These scripts demonstrate the wrapping pattern; another repo adopting this skill
 
 ## Human decisions
 
-When this procedure requires a human choice, clarification or confirmation, use the current harness's supported structured question tool under its native instructions and tool contract; resolve mechanics through [harness-operations](../harness-operations/SKILL.md). Include the exact project, service, environment, operation and tradeoffs; wait for an explicit answer before dependent work. Do not leave the request only in prose. If no permitted question tool exists, state the limitation and use the established human handoff channel without assuming approval.
+Reuse settled decisions and authorization; routine implementation and tool selection
+are agent responsibilities. Only when this procedure requires a human choice, clarification or confirmation, use the current harness's supported structured question tool under its native instructions and tool contract; resolve mechanics through [harness-operations](../harness-operations/SKILL.md). Include the exact project, service, environment, operation and tradeoffs; wait for an explicit answer before dependent work. Do not leave the request only in prose. If no permitted question tool exists, state the limitation and use the established human handoff channel without assuming approval.

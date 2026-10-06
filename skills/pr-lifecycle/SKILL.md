@@ -35,7 +35,7 @@ when needed; subscriptions and a specific GitHub tool are not prerequisites.
    Subscriptions may help when supported, but do not replace this explicit sweep.
    Distinguish passed, failed, pending, cancelled, skipped and unavailable checks.
    A skipped required gate or an absent result is not a pass.
-4. Delegate failure classification to [ci-triage](../ci-triage/SKILL.md). Reproduce
+4. Use [ci-triage](../ci-triage/SKILL.md) to classify failures. Reproduce
    using repo-owned gates/fixtures. Fix defects within scope; report blocked logs,
    setup. Request pending human decisions through the structured question
    capability in [harness-operations](../harness-operations/SKILL.md), with context

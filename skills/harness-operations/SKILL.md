@@ -22,6 +22,9 @@ authentication. A checked-in skill does not provision a connector, CLI or token.
 1. Identify the needed operation and whether it is read-only or an authorized
    mutation. Prefer an already available configured capability; do not add personal
    setup as a default prerequisite.
+   Carry forward authorization for the same action and scope. Resolve routine
+   implementation choices independently; request a human decision only when its
+   answer is required to proceed or materially changes the intended outcome.
 2. Load only the matching native reference:
    [Claude Code](references/claude-code.md) or [Codex](references/codex.md).
    If the harness is different or uncertain, use observed tools and report the
@@ -45,6 +48,9 @@ authentication. A checked-in skill does not provision a connector, CLI or token.
 6. Preserve configured identity, proxy and trust. Never print credentials, inspect
    secret files for values, dump the environment, or replace credentials because
    a token is not visible. Diagnose 401/403 using current runtime observations.
+   Try an equivalent configured tool before requesting installation, login or
+   broader permissions. Report the failing operation and actual error rather than
+   making setup for one tool a prerequisite for all work.
 7. If no equivalent exists, finish independent work and report the exact blocked
    operation. Do not turn missing subscriptions into invented background monitoring
    or missing publication into a claim that an issue/PR was created.

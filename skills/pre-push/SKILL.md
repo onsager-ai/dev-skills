@@ -38,6 +38,9 @@ and base branch, which may differ from main. Load
    required tree. Respect its distinction between advisory and blocking warnings.
    Missing tooling, origin access or environment setup is blocked validation, not
    a pass. Do not suppress failures, weaken assertions or bypass hooks.
+   Once the required checks pass, repeat them only for changed inputs, a new
+   failure or an unresolved concern. Missing optional tooling does not block
+   independent work or reviewable PR preparation; describe its validation limit.
 5. Apply the declared contribution process. Where SDD is required, verify a spec
    exists, its blocking decisions are resolved, and the proposed PR links the right
    delivery slice. Use [issue-spec](../issue-spec/SKILL.md) for missing specs.

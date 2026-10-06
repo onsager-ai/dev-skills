@@ -6,11 +6,9 @@ set -e
 
 SERVICE="${1:-onsager}"
 
-if [ -z "$ONSAGER_RAILWAY_TOKEN" ]; then
-    echo "ERROR: ONSAGER_RAILWAY_TOKEN not set" >&2
-    exit 1
+if [ -n "$ONSAGER_RAILWAY_TOKEN" ]; then
+    export RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN"
 fi
-export RAILWAY_TOKEN="$ONSAGER_RAILWAY_TOKEN"
 
 echo "=== Railway Debug: $SERVICE ==="
 
@@ -35,5 +33,13 @@ echo "--- HTTP Errors (last 10, status >= 400) ---"
 railway logs --service "$SERVICE" --http --status ">=400" --lines 10 2>&1 || echo "(no http errors)"
 
 echo ""
-echo "--- Environment Variables ---"
-railway variable list --service "$SERVICE" 2>&1
+echo "--- Environment Variable Names (values withheld) ---"
+# Do not mix stderr into JSON: a diagnostic error may include private material.
+# Pipeline failure is propagated by the JSON parser rather than printed raw.
+railway variable list --service "$SERVICE" --json 2>/dev/null | python3 -c '
+import json, sys
+variables = json.load(sys.stdin)
+if not isinstance(variables, dict):
+    raise SystemExit("Unexpected variable response shape; values withheld")
+print("\n".join(sorted(variables)))
+'
