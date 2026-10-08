@@ -1,6 +1,6 @@
 ---
 name: harness-operations
-description: Map a workflow operation to the tools and instruction-discovery mechanisms actually available in Claude Code or Codex. Use when a common or repository skill needs structured human questions, file, GitHub, check/log or subscription capabilities, or when discovery/authentication is uncertain.
+description: Map a workflow operation to the tools and instruction-discovery mechanisms actually available in Claude Code, Codex or ChatGPT Work. Use when a common or repository skill needs structured human questions, file, GitHub, check/log or subscription capabilities, or when discovery/authentication is uncertain.
 ---
 
 # Harness operations
@@ -26,7 +26,8 @@ authentication. A checked-in skill does not provision a connector, CLI or token.
    implementation choices independently; request a human decision only when its
    answer is required to proceed or materially changes the intended outcome.
 2. Load only the matching native reference:
-   [Claude Code](references/claude-code.md) or [Codex](references/codex.md).
+   [Claude Code](references/claude-code.md), [Codex](references/codex.md) or
+   [ChatGPT Work](references/chatgpt-work.md).
    If the harness is different or uncertain, use observed tools and report the
    missing mapping instead of pretending one profile applies.
 3. For GitHub, resolve the exact repository/ref and use connected GitHub tools
