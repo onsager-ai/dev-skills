@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Install optional user tooling once, without writing any consumer repository."""
+import argparse
 import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import shutil
 import subprocess
+import tomllib
 
 STITCH_REV = "0337446dadde6f8c94210444e2aa9d546126480f"
 PEN_VERSION = "0.3.10"
@@ -37,7 +40,34 @@ def has_mcp(executable, name):
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
-def main():
+def configure_codex_runtime(name, launcher):
+    # Codex's stdio child filters the environment. Forward names, never values.
+    config = Path(ENV.get("CODEX_HOME") or USER / ".codex") / "config.toml"
+    text = config.read_text()
+    entry = tomllib.loads(text).get("mcp_servers", {}).get(name, {})
+    if entry.get("command") != str(launcher) or entry.get("args") != [name]:
+        print(f"Codex {name}: external entry preserved; validate its environment forwarding independently.")
+        return
+    additions = []
+    if "env_vars" not in entry:
+        additions.append('env_vars = ["STITCH_API_KEY", "PEN_CLI_KEY", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "PEN_MCP_APP"]')
+    if "startup_timeout_sec" not in entry:
+        additions.append("startup_timeout_sec = 60")
+    if additions:
+        pattern = rf"(?m)^\[mcp_servers\.{re.escape(name)}\]\s*$"
+        updated, count = re.subn(pattern, lambda match: match.group(0) + "\n" + "\n".join(additions), text)
+        if count != 1:
+            raise RuntimeError("Cannot safely locate Codex MCP section; preserve it and reconcile manually.")
+        tomllib.loads(updated)
+        config.write_text(updated)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--harness", choices=("codex", "both"), default="codex",
+                        help="Configure Codex only (default), or opt into Claude Code too.")
+    options = parser.parse_args(argv)
+    include_claude = options.harness == "both"
     if platform.system() not in ("Linux", "Darwin"):
         raise RuntimeError("This installer supports Linux/macOS; Windows should use WSL or native app setup.")
     node, npm, git, codex = [shutil.which(tool, path=ENV["PATH"]) for tool in ("node", "npm", "git", "codex")]
@@ -50,14 +80,16 @@ def main():
     BIN.mkdir(parents=True, exist_ok=True)
     runtime = ROOT / "runtime"
     runtime.mkdir(exist_ok=True)
-    for filename in ("run.mjs", "smoke.mjs", "package.json", "package-lock.json"):
+    for filename in ("run.mjs", "proxy.mjs", "smoke.mjs", "package.json", "package-lock.json"):
         shutil.copy2(SOURCE / filename, runtime / filename)
     call([npm, "ci", "--prefix", runtime, "--no-audit", "--no-fund"])
     call([npm, "install", "-g", "--prefix", USER / ".local", f"@pen.dev/cli@{PEN_VERSION}", "--no-audit", "--no-fund"])
-    claude = shutil.which("claude", path=ENV["PATH"])
-    if not claude:
-        call([npm, "install", "-g", "--prefix", USER / ".local", f"@anthropic-ai/claude-code@{CLAUDE_VERSION}", "--no-audit", "--no-fund"])
-        claude = str(BIN / "claude")
+    claude = None
+    if include_claude:
+        claude = shutil.which("claude", path=ENV["PATH"])
+        if not claude:
+            call([npm, "install", "-g", "--prefix", USER / ".local", f"@anthropic-ai/claude-code@{CLAUDE_VERSION}", "--no-audit", "--no-fund"])
+            claude = str(BIN / "claude")
     # npm's published tarball carries native files without executable mode.
     pen_root = USER / ".local/lib/node_modules/@pen.dev/cli"
     for native in (pen_root / "dist/out").glob("mcp-server-*"):
@@ -84,7 +116,10 @@ def main():
     for skill in skills:
         if not (skill / "SKILL.md").is_file():
             continue
-        for base in (USER / ".agents/skills", USER / ".claude/skills"):
+        bases = [USER / ".agents/skills"]
+        if include_claude:
+            bases.append(USER / ".claude/skills")
+        for base in bases:
             link(skill, base / skill.name)
     credential_dir = USER / ".config/ui-design"
     credential_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -102,6 +137,9 @@ def main():
             call([codex, "mcp", "add", name, "--", launcher, name])
         else:
             print(f"Codex {name}: reusing existing configuration.")
+        configure_codex_runtime(name, launcher)
+        if not include_claude:
+            continue
         if not has_mcp(claude, name):
             entry = {"type": "stdio", "command": str(launcher), "args": [name]}
             call([claude, "mcp", "add-json", "--scope", "user", name, json.dumps(entry)])
@@ -113,7 +151,8 @@ def main():
         profile.write_text(text + '\n# User CLI tools (ui-design setup)\nexport PATH="$HOME/.local/bin:$PATH"\n')
     (ROOT / "versions.json").write_text(json.dumps({"stitch_skills_revision": STITCH_REV,
         "pen_cli": PEN_VERSION, "runtime": json.loads((runtime / "package.json").read_text())["dependencies"]}, indent=2) + "\n")
-    print("User tooling configured for both harnesses. Credentials were not copied into MCP configuration.")
+    selected = "Codex and Claude Code" if include_claude else "Codex only"
+    print(f"User tooling configured for {selected}. Credentials were not copied into MCP configuration.")
     print("Restart harnesses to discover the new user skills/MCP entries. Authenticate providers securely.")
 
 

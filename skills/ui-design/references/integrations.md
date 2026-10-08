@@ -2,29 +2,39 @@
 
 Install from the canonical dev-skills source, once per machine or persistent
 cloud home. The installer writes no product files and preserves existing named
-MCP entries. Linux/macOS need Node >=22.19, npm, Git and Codex CLI. Claude Code is
-installed if absent. Windows can use WSL; native desktop integrations can instead
+MCP entries. Linux/macOS need Python >=3.11, Node >=22.19, npm, Git and Codex CLI.
+Codex-only setup is the default. Claude Code installation, configuration and
+validation are deferred unless `--harness both` is explicitly selected.
+Windows can use WSL; native desktop integrations can instead
 be enabled in pen.dev's MCP settings.
 
 ```sh
-python3 skills/ui-design/scripts/setup.py
+python3 skills/ui-design/scripts/setup.py --harness codex
 ```
 
-The pinned installer uses pen.dev CLI 0.3.10, Claude Code 2.1.293 when missing,
+The pinned installer uses pen.dev CLI 0.3.10, Claude Code 2.1.293 only with
+`--harness both` when missing,
 Google Labs Stitch SDK 0.3.5 and the original Stitch skills commit
 `0337446dadde6f8c94210444e2aa9d546126480f`. Its dependency lock is included.
 Review vendor updates upstream, update pins/lock and rerun setup deliberately.
 Do not also install these same skills as vendor plugins.
 
-## One configuration, two harnesses
+## One canonical installation, selected harnesses
+
+`--harness codex` does not probe/install Claude Code, write its user config or
+create its user skill symlinks. Future `--harness both` reuses the same canonical
+installation and adds Claude discovery/configuration without duplicate skills.
+Generated consumer Claude projections remain for future compatibility; they do
+not install, configure or authenticate Claude Code.
 
 - `~/.local/share/ui-design-tools/stitch-skills` is the original pinned vendor
   checkout. Six Stitch design skills and design-md/enhance-prompt are symlinked
-  into `~/.agents/skills` (Codex) and `~/.claude/skills` (Claude Code). All relative
-  references/scripts stay in the canonical checkout. Framework-specific build,
+  into `~/.agents/skills` (Codex), plus `~/.claude/skills` only when Claude Code
+  is selected. All relative references/scripts stay in the canonical checkout. Framework-specific build,
   shadcn, video and taste prescriptions are not installed by default.
 - The pen.dev package's pen-design skill is preserved under the same user-level
-  canonical tree, with two discovery symlinks. Its generic recommendations yield
+  canonical tree, with discovery symlinks for the selected harnesses. Its generic
+  recommendations yield
   to repository-specific design/implementation contracts.
 - The repository ui-design procedure stays pinned and generated using the
   existing manifest architecture. Do not install dev-skills globally on top of
@@ -33,7 +43,11 @@ Do not also install these same skills as vendor plugins.
   entries named `stitch` and `pencil`. Codex uses its user config.toml; Claude
   uses user-scoped MCP configuration. No .mcp.json is added to consumer repos.
   Existing entries are reused and must be validated separately; the installer
-  does not replace credentials or app-managed configuration.
+  does not replace credentials or app-managed configuration. For entries owned
+  by this launcher it sets a 60-second startup allowance and forwards secure
+  credential/proxy/CA environment variable names through Codex `env_vars`; no
+  credential values are stored. Existing explicit forwarding/timeout choices
+  are preserved and must be validated independently.
 
 ## Authentication and custody
 
@@ -49,7 +63,9 @@ Get a Stitch key through Stitch's MCP/API-key settings. The launcher runs the
 original Google Labs SDK stdio proxy against `https://stitch.googleapis.com/mcp`;
 both harnesses share the same runtime credential lookup. The SDK supplies the
 X-Goog-Api-Key header in memory. Proxy and CA settings are preserved; TLS
-verification remains enabled. API keys are chosen for durable shared use, rather
+verification remains enabled. The pen launcher preloads the same proxy-aware
+fetch dispatcher in its Node child, preserving existing `NODE_OPTIONS` and CA trust.
+API keys are chosen for durable shared use, rather
 than copying separate harness OAuth caches or expiring access tokens.
 
 For pen.dev headless operations use an organization CLI key from Developer Keys,
@@ -84,21 +100,27 @@ inspect it. Headless mode has no desktop browser tool or live canvas preview.
 
 Persistent user config/skills remove per-repo/session setup. Ephemeral workers
 still need image provisioning or an automated startup run of this installer,
-plus secure secret injection. This cannot configure an unattached laptop or a
+plus secure secret injection. Use `--harness codex` for worker bootstrap and
+verify credentials in the actual agent, MCP child and CLI child using presence
+checks only. Preserve injected proxy/CA settings; do not print key values, lengths,
+prefixes or hashes. If `CODEX_HOME` is supplied, Codex writes its user config there;
+persistence of that directory and the user home is a worker provisioning concern.
+An already-running harness may need restart/reload to register newly added MCP
+servers and skills. This cannot configure an unattached laptop or a
 different Claude cloud host. Restart each harness after initial setup.
 
 ## Independent validation
 
 ```sh
 codex mcp list
-claude mcp list
 node ~/.local/share/ui-design-tools/runtime/smoke.mjs codex stitch
-node ~/.local/share/ui-design-tools/runtime/smoke.mjs claude stitch
 node ~/.local/share/ui-design-tools/runtime/smoke.mjs codex pencil
-node ~/.local/share/ui-design-tools/runtime/smoke.mjs claude pencil
 ~/.local/bin/ui-design pen status
 ~/.local/bin/ui-design pen interactive --out /absolute/scratch/smoke.pen
 ```
+
+Claude equivalents are deferred in Codex-only setup; use them independently
+after explicitly selecting and authenticating Claude Code.
 
 Each smoke process loads that harness's actual named entry, initializes MCP,
 lists tools and calls list_projects or get_app_state without printing private

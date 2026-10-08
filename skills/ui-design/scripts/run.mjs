@@ -38,6 +38,8 @@ export async function run() {
   const localBin = path.join(os.homedir(), '.local', 'bin');
   process.env.PATH = `${localBin}${path.delimiter}${process.env.PATH || ''}`;
   if (mode === 'pen') {
+    const proxyModule = fileURLToPath(new URL('./proxy.mjs', import.meta.url));
+    process.env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ''} --import=${JSON.stringify(proxyModule)}`.trim();
     child(path.join(localBin, 'pen'), process.argv.slice(3));
   } else if (mode === 'pencil') {
     const platform = { darwin: 'darwin', linux: 'linux', win32: 'windows' }[process.platform];
