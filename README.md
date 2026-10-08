@@ -65,6 +65,7 @@ The selected pilot procedures are harness-neutral. Their [harness-operations](sk
 | Skill | One-liner |
 | --- | --- |
 | [`issue-spec`](skills/issue-spec/SKILL.md) | Create/revise a focused spec under the repo's contribution policy; use its local medium, labels and impact overlays. |
+| [`ui-design`](skills/ui-design/SKILL.md) | Coordinate Stitch/pen.dev extraction, refinement and existing-stack implementation; optional shared user tooling, repository-owned design contracts and honest desktop/cloud validation. |
 | [`pre-push`](skills/pre-push/SKILL.md) | Pre-push checklist for the SDD loop — sync the merge preview, walk merge-conflict patterns, run the repo's check gate, confirm a linked spec. Repo-agnostic; the gate command + collision patterns come from the consumer's AGENTS.md. |
 | [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | Post-push PR workflow — spec linking, Delivers, tracker refresh, CI triage (delegates to `ci-triage`), conflict recovery, webhook + post-push CI sweep. Repo-agnostic; CI-failure patterns come from the consumer's AGENTS.md. |
 | [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded done / in-progress / available-next / blocked. |
