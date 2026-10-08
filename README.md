@@ -6,6 +6,41 @@ Cross-repo **engineering-methodology skills** — the dev-process scaffolding th
 
 The [Agent Configuration Standard v1 draft](docs/agent-configuration-v1.md) proposes repository-owned contracts, native harness adapters and pinned checkout-local workflows. See the [decision register](docs/agent-architecture-decisions.md) and [pilot adoption status](docs/agent-architecture-adoption.md). The standard remains a review proposal. The revised pilots use [checkout-local synchronization](agent-config/README.md), so a normal clone needs no personal installation.
 
+## ChatGPT Work
+
+Work can reuse the same repository-owned contracts and pinned skills. Its native
+capability mapping is [ChatGPT Work mechanics](skills/harness-operations/references/chatgpt-work.md).
+A ChatGPT Project does not by itself establish that a repository's instructions
+or skill catalog were loaded.
+
+Add a short entrypoint in the Project's settings, adapting the repository names
+and communication preferences. For example:
+
+```text
+This project covers onsager-ai/semon and onsager-ai/semon-hub.
+Communicate in Chinese; write GitHub issues and pull requests in English.
+
+For repository tasks, resolve the target repository, branch and commit.
+Read AGENTS.md and .agents/manifest.json at that commit, then load only
+the relevant .agents/skills/<name>/SKILL.md files and necessary dependencies.
+Read applicable module instructions before editing.
+
+Prefer the available local checkout; otherwise use connected GitHub
+file reads at the same commit. Refresh these sources when the task ref changes.
+Follow the target repository's pinned manifest and canonical skill copies.
+Update shared behavior in dev-skills and regenerate managed projections.
+```
+
+Use the current Work catalog for installed skills. Reading a repository SKILL.md
+through GitHub is explicit workflow loading, not plugin installation or proof of
+automatic discovery. No personal installation is needed for that read path;
+actual GitHub access and execution capabilities remain separate prerequisites.
+
+Validate source changes with `npm run check`, then synchronize consumers using
+their existing pinned-source process. Record a fresh Work session's actual
+instruction and skill reads separately from static checks. Plugin packaging and
+distribution are a separate opt-in step; this entrypoint does not install one.
+
 ## Legacy personal installation
 
 ```bash
