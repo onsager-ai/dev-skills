@@ -76,6 +76,26 @@ Skip when:
    Use an equivalent configured capability first. Install/update tooling only when
    needed for the requested operation and within its authorized scope.
 
+## Published-image delivery
+
+When the repository uses registry artifacts, follow its image pipeline. A source
+redeploy or checkout upload does not preserve artifact identity. Resolve the
+selected manifest, source pair, immutable registry digest and platform before an
+authorized write. Build/test/publication and deployment credentials have separate
+custody; private-registry pull credentials belong to the target environment, not
+to image layers or build arguments.
+
+A successful API request or queued deployment is not rollout success. Track the
+returned deployment ID, verify its exact requested image and target, wait for its
+successful completion, then check health and baked-in source/build identity.
+Serialize writes to each environment and enforce repository freshness rules so
+an older completed pipeline cannot replace a newer deployment. Never replay an
+unknown source update or deploy request; reconcile it through read evidence.
+Rollback selects a retained qualified image and requires the repository's database
+migration compatibility policy. Historical releases without retained images need
+an explicitly scoped recovery route; do not silently rebuild them as rollbacks.
+These mechanics grant no rollout, credential-migration or resource authority.
+
 ## Operating procedure
 
 The skill is a small state machine. Pick the smallest entry point that answers the user's question; don't run discovery they didn't ask for.
