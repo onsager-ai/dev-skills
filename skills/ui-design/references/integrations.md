@@ -2,7 +2,7 @@
 
 Install from the canonical dev-skills source, once per machine or persistent
 cloud home. The installer writes no product files and preserves existing named
-MCP entries. Linux/macOS need Python >=3.11, Node >=22.19, npm, Git and Codex CLI.
+MCP entries. Linux/macOS need Python >=3.11, Node >=22.19, npm and Codex CLI.
 Codex-only setup is the default. Claude Code installation, configuration and
 validation are deferred unless `--harness both` is explicitly selected.
 Windows can use WSL; native desktop integrations can instead
@@ -12,12 +12,10 @@ be enabled in pen.dev's MCP settings.
 python3 skills/ui-design/scripts/setup.py --harness codex
 ```
 
-The pinned installer uses pen.dev CLI 0.3.10, Claude Code 2.1.293 only with
-`--harness both` when missing,
-Google Labs Stitch SDK 0.3.5 and the original Stitch skills commit
-`0337446dadde6f8c94210444e2aa9d546126480f`. Its dependency lock is included.
-Review vendor updates upstream, update pins/lock and rerun setup deliberately.
-Do not also install these same skills as vendor plugins.
+The pinned installer uses pen.dev CLI 0.3.10 and Claude Code 2.1.293 only with
+`--harness both` when missing. Its runtime dependency lock is included. Review
+vendor updates upstream, update pins/lock and rerun setup deliberately. Do not
+also install the same pen.dev skill as a vendor plugin.
 
 ## One canonical installation, selected harnesses
 
@@ -27,11 +25,6 @@ installation and adds Claude discovery/configuration without duplicate skills.
 Generated consumer Claude projections remain for future compatibility; they do
 not install, configure or authenticate Claude Code.
 
-- `~/.local/share/ui-design-tools/stitch-skills` is the original pinned vendor
-  checkout. Six Stitch design skills and design-md/enhance-prompt are symlinked
-  into `~/.agents/skills` (Codex), plus `~/.claude/skills` only when Claude Code
-  is selected. All relative references/scripts stay in the canonical checkout. Framework-specific build,
-  shadcn, video and taste prescriptions are not installed by default.
 - The pen.dev package's pen-design skill is preserved under the same user-level
   canonical tree, with discovery symlinks for the selected harnesses. Its generic
   recommendations yield
@@ -40,7 +33,7 @@ not install, configure or authenticate Claude Code.
   existing manifest architecture. Do not install dev-skills globally on top of
   a checkout-local consumer.
 - `~/.local/bin/ui-design` is an absolute-path launcher referenced by user MCP
-  entries named `stitch` and `pencil`. Codex uses its user config.toml; Claude
+  entry named `pencil`. Codex uses its user config.toml; Claude
   uses user-scoped MCP configuration. No .mcp.json is added to consumer repos.
   Existing entries are reused and must be validated separately; the installer
   does not replace credentials or app-managed configuration. For entries owned
@@ -51,7 +44,7 @@ not install, configure or authenticate Claude Code.
 
 ## Authentication and custody
 
-Inject STITCH_API_KEY and PEN_CLI_KEY through the environment's secure secret
+Inject PEN_CLI_KEY through the environment's secure secret
 settings, or edit `~/.config/ui-design/credentials.json` privately on a local
 machine. That regular file must be owned by the user and mode 0600; its directory
 should be 0700. Its initially empty entries are loaded only at runtime. Inherited
@@ -59,14 +52,24 @@ secure variables take precedence, including proxy-injected credential bindings.
 Do not paste secrets in chat, commit them, place them in MCP headers/env config,
 pass them as CLI arguments or inspect provider token files.
 
-Get a Stitch key through Stitch's MCP/API-key settings. The launcher runs the
-original Google Labs SDK stdio proxy against `https://stitch.googleapis.com/mcp`;
-both harnesses share the same runtime credential lookup. The SDK supplies the
-X-Goog-Api-Key header in memory. Proxy and CA settings are preserved; TLS
-verification remains enabled. The pen launcher preloads the same proxy-aware
-fetch dispatcher in its Node child, preserving existing `NODE_OPTIONS` and CA trust.
-API keys are chosen for durable shared use, rather
-than copying separate harness OAuth caches or expiring access tokens.
+The pen launcher preloads a proxy-aware fetch dispatcher in its Node child,
+preserving existing `NODE_OPTIONS`, inherited proxy settings and CA trust. TLS
+verification remains enabled. The credential loader reads only PEN_CLI_KEY;
+other entries in an existing credential file are ignored and preserved. Setup
+adds only pen.dev tooling; it does not uninstall previous user tools, delete
+credentials or remove unrelated MCP entries.
+
+### Upgrading a previous installation
+
+Before restarting a harness that used the retired Stitch integration, disable
+its old `stitch` entry in that harness's MCP settings. The updated launcher rejects
+that mode, so leaving the old entry enabled produces a startup failure. Remove
+only installer-created discovery symlinks whose resolved targets are inside
+`~/.local/share/ui-design-tools/stitch-skills`, under the selected harness's
+`~/.agents/skills` or `~/.claude/skills`. Keep the canonical vendor checkout,
+regular files, user edits and credentials. Review external entries separately.
+The installer preserves these old settings/links rather than silently deleting
+them; repository updates do not apply this user-machine migration automatically.
 
 For pen.dev headless operations use an organization CLI key from Developer Keys,
 or `~/.local/bin/ui-design pen login` to store a vendor-managed session. Both
@@ -113,7 +116,6 @@ different Claude cloud host. Restart each harness after initial setup.
 
 ```sh
 codex mcp list
-node ~/.local/share/ui-design-tools/runtime/smoke.mjs codex stitch
 node ~/.local/share/ui-design-tools/runtime/smoke.mjs codex pencil
 ~/.local/bin/ui-design pen status
 ~/.local/bin/ui-design pen interactive --out /absolute/scratch/smoke.pen
@@ -123,7 +125,7 @@ Claude equivalents are deferred in Codex-only setup; use them independently
 after explicitly selecting and authenticating Claude Code.
 
 Each smoke process loads that harness's actual named entry, initializes MCP,
-lists tools and calls list_projects or get_app_state without printing private
+lists tools and calls get_app_state without printing private
 results. This establishes configured transport compatibility, not model-driven
 harness execution. In a fresh authenticated harness session, read AGENTS and
 ui-design, inspect skill discovery, and invoke those read tools directly. In
@@ -133,13 +135,9 @@ and distinguish unavailable authentication/host from success.
 
 ## Vendor sources
 
-- [Stitch MCP setup](https://stitch.withgoogle.com/docs/mcp/setup/)
-- [Original Google Labs skills](https://github.com/google-labs-code/stitch-skills)
-- [Original Google Labs SDK](https://github.com/google-labs-code/stitch-sdk)
 - [pen.dev installation and native MCP](https://docs.pen.dev/getting-started/installation)
 - [pen.dev MCP architecture](https://docs.pen.dev/getting-started/ai-integration)
 - [Headless CLI and authentication](https://docs.pen.dev/for-developers/pen-cli)
 
-The Google Labs skills/SDK are Google-maintained open-source projects with their
-own support disclaimer. An installed vendor skill can still contain stale
-commands; the CLI/live tool catalog and repository contract take precedence.
+An installed vendor skill can still contain stale commands; the CLI/live tool
+catalog and repository contract take precedence.

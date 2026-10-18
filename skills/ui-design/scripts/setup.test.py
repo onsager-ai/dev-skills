@@ -15,13 +15,6 @@ class SelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             user = Path(directory)
             root = user / ".local/share/ui-design-tools"
-            vendor = root / "stitch-skills"
-            for group, names in (("stitch-design", ("generate-design",)),
-                                 ("stitch-utilities", ("design-md", "enhance-prompt"))):
-                for name in names:
-                    skill = vendor / "plugins" / group / "skills" / name
-                    skill.mkdir(parents=True)
-                    (skill / "SKILL.md").write_text("fixture")
             pen = user / ".local/lib/node_modules/@pen.dev/cli"
             pen.mkdir(parents=True)
             for name in ("SKILL.md", "LICENSE"):
@@ -58,19 +51,24 @@ class SelectionTests(unittest.TestCase):
                 self.assertFalse((user / ".claude").exists())
                 self.assertFalse((user / ".claude.json").exists())
                 self.assertFalse(any("anthropic" in " ".join(args) for args in calls))
-                self.assertEqual(sum("mcp" in args for args in calls), 2)
+                self.assertEqual(sum("mcp" in args for args in calls), 1)
                 parsed = setup.tomllib.loads(config.read_text())
                 self.assertEqual(parsed["unrelated"]["value"], "preserved")
-                for name in ("stitch", "pencil"):
-                    self.assertIn("STITCH_API_KEY", parsed["mcp_servers"][name]["env_vars"])
+                for name in ("pencil",):
+                    self.assertIn("PEN_CLI_KEY", parsed["mcp_servers"][name]["env_vars"])
+                    self.assertNotIn("STITCH_API_KEY", parsed["mcp_servers"][name]["env_vars"])
                     self.assertIn("HTTPS_PROXY", parsed["mcp_servers"][name]["env_vars"])
                     self.assertIn("NODE_EXTRA_CA_CERTS", parsed["mcp_servers"][name]["env_vars"])
                     self.assertEqual(parsed["mcp_servers"][name]["startup_timeout_sec"], 60)
-                canonical = (user / ".agents/skills/design-md").resolve()
+                self.assertNotIn("stitch", parsed.get("mcp_servers", {}))
+                self.assertNotIn("git", probes)
+                self.assertFalse(any("stitch" in " ".join(args) for args in calls))
+                self.assertFalse((root / "stitch-skills").exists())
+                canonical = (user / ".agents/skills/pen-design").resolve()
                 setup.main(["--harness", "both"])
-                self.assertEqual((user / ".claude/skills/design-md").resolve(), canonical)
-                self.assertEqual(sum("add-json" in args for args in calls), 2)
-                self.assertEqual(sum("mcp" in args and "add" in args for args in calls), 2)
+                self.assertEqual((user / ".claude/skills/pen-design").resolve(), canonical)
+                self.assertEqual(sum("add-json" in args for args in calls), 1)
+                self.assertEqual(sum("mcp" in args and "add" in args for args in calls), 1)
                 self.assertTrue(any("@anthropic-ai/claude-code@" in " ".join(args) for args in calls))
 
 

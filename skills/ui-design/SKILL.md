@@ -1,13 +1,13 @@
 ---
 name: ui-design
-description: Reconcile product requirements with UI baselines, review actual visual differences and implement changes in an existing frontend. Use for baseline selection/correction, visual acceptance and source-grounded Stitch/pen.dev work; preserve design ownership, native forms and regression gates.
+description: Reconcile product requirements with UI baselines, review actual visual differences and implement changes in an existing frontend. Use for baseline selection/correction, visual acceptance and source-grounded pen.dev work; preserve design ownership, native forms and regression gates.
 ---
 
 # UI design workflow
 
 ## Scope
 
-This procedure coordinates design tools; repository contracts own the visual
+This procedure coordinates visual review and optional pen.dev tooling; repository contracts own the visual
 system, implementation stack and acceptance checks. Tool installation does not
 authorize production UI changes, a new aesthetic, credential migration or paid
 generation. Use the user's established scope without repeated setup per repo.
@@ -31,31 +31,25 @@ requires no personal installation.
    replacement token authority. Keep shared foundations and product layouts
    separate; do not introduce a reverse dependency between repositories.
 2. Inspect the live tool catalog and authentication independently for each
-   harness. Stitch is a remote service; pen.dev desktop MCP requires a same-host
+   harness. pen.dev desktop MCP requires a same-host
    app/socket. In cloud environments use the supported headless CLI when no app
    is available. Do not invent a remote pen.dev MCP endpoint or report a configured
    server as operational. CLI agent-provider authentication is separate from
    pen.dev authentication and from the calling harness's authentication.
-3. For Stitch, load the relevant Google Labs skills from the single user-level
-   canonical installation: extract-design-md, design-md, enhance-prompt,
-   manage-design-system, generate-design, extract-static-html, upload-to-stitch
-   or code-to-design. Follow repository policy and available equivalent tools.
-   Framework-specific example output does not authorize a stack migration.
-   Do not install the same vendor skills as both plugins and loose skills.
-4. Credentials stay in inherited secure variables or the private user credential
+3. Credentials stay in inherited secure variables or the private user credential
    store. Never extract a key from an MCP config, print it, include it in a prompt,
    pass it on a command line or commit it. Some upstream upload examples pass an
-   API key as an argument: use authenticated MCP/SDK uploads with in-memory auth
-   instead. Account access does not authorize uploading private source/data;
+   API key as an argument: use supported secure authentication instead.
+   Account access does not authorize uploading private source/data;
    prepare the concrete assets under the user's task scope. Synthetic fixtures
    are preferable to real transcripts and authenticated personal pages.
-5. For pen.dev desktop MCP, load read_skill and verify get_app_state against the
+4. For pen.dev desktop MCP, load read_skill and verify get_app_state against the
    intended document before editing. For headless work use the user launcher
    `~/.local/bin/ui-design pen interactive --out <explicit-artifact-path>`.
    Read the current schema/execute instructions, work in an isolated .pen file,
    save deliberately and inspect an exported screenshot. Use independent output
    paths for concurrent harnesses; never let both edit one active document.
-6. Refine a small approved screen or component first. Compare the result with
+5. Refine a small approved screen or component first. Compare the result with
    source tokens, the approved design and the existing implementation. Implement
    in authored frontend sources using existing components/controllers. Preserve
    server forms, accessibility, security, focus, touch and lifecycle ownership.
@@ -107,5 +101,5 @@ evidence, authentication gaps and desktop/cloud limitations. Separate static
 configuration, MCP transport, successful tool calls and visual acceptance.
 Include the requirement mapping, reviewed image families, classified differences,
 justified baseline changes and final check results/limits in the existing handoff.
-Minimal setup smoke tests list Stitch projects and read pen.dev app state; they
+Minimal setup smoke tests read pen.dev app state; they
 do not require generation, production data uploads or baseline changes.
