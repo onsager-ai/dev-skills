@@ -1,5 +1,10 @@
 # Optional user-level design integrations
 
+This setup is optional and applies only when a task calls for pen.dev tooling.
+The source-first component, Storybook, Playwright, capture and product-check
+workflow needs no pen.dev account, `PEN_CLI_KEY`, desktop socket or user-level
+installation. Do not install or migrate credentials just to follow that workflow.
+
 Install from the canonical dev-skills source, once per machine or persistent
 cloud home. The installer writes no product files and preserves existing named
 MCP entries. Linux/macOS need Python >=3.11, Node >=22.19, npm and Codex CLI.

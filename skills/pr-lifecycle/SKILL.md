@@ -51,12 +51,19 @@ For a visible UI change, show a small set of actual before/after screenshots fro
 the base and head under the same viewport, theme, route and fixture. Label each
 comparison and link the larger evidence set. State when a baseline is unavailable;
 never synthesize an image as validation. Follow the repository's UI workflow to
-identify the governing product decisions, expected visible changes, actual image
-families inspected, and why each reference change is justified. Group repeated
-states by cause and separate implementation, reference and fixture defects from
-unresolved product choices. Existing explicit decisions do not need fresh approval
-merely because an older baseline contradicts them. Preserve repository-specific
-acceptance gates and report any visual inspection limit.
+map the requirement/state/interaction to its source owner, story or served-product
+test, viewport/theme, expected result and reference status. Identify the governing
+product decisions, actual image families inspected, and why each reference change
+is justified. Group repeated states by cause and separate implementation,
+reference and fixture defects from unresolved product choices. Existing explicit
+decisions do not need fresh approval merely because an older baseline contradicts
+them. Preserve repository-specific acceptance gates and report any visual
+inspection limit. Include capture provenance with a baseline candidate. CI
+compares and uploads evidence but must not rewrite, approve or auto-commit
+baselines; report missing baselines, unexpected dimension changes, drift and
+omitted required captures as failed gates. A passing story fixture does not
+establish API, authorization, runtime, reconnect or other end-to-end behavior.
+
 Use a compact diagram only when branches,
 ownership or state transitions are clearer than prose. Omit empty template sections
 and visuals that do not help review.

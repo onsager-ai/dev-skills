@@ -9,6 +9,17 @@ Exploratory, AI-driven validation of dashboard UI changes — **not** regression
 
 > **Adopting in another repo:** the procedure (read diff → map to routes → run agent-browser at two viewports → screenshot → verdict) is repo-agnostic. The route table, test paths, and verdict schema below are *examples* from `onsager-ai/onsager`. Fork the skill and replace those concrete bits for your own dashboard.
 
+## Relationship to visual baseline review
+
+For code-first visual acceptance or a proposed baseline change, follow the
+repository's canonical UI design workflow, including its requirement-to-state
+mapping and deterministic Storybook/Playwright capture process. This L2
+procedure remains exploratory route and interaction coverage; its screenshots
+do not substitute for matched reference/candidate/diff images or establish
+baseline acceptance. Story fixtures can verify presentation states, but API,
+authorization, runtime, reconnect and other end-to-end claims need the product's
+real behavioral and integration gates.
+
 ## When to invoke
 
 - A PR touches `apps/dashboard/**`
