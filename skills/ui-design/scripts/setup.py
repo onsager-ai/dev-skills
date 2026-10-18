@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import tomllib
 
-STITCH_REV = "0337446dadde6f8c94210444e2aa9d546126480f"
 PEN_VERSION = "0.3.10"
 CLAUDE_VERSION = "2.1.293"
 SOURCE = Path(__file__).resolve().parent
@@ -50,7 +49,7 @@ def configure_codex_runtime(name, launcher):
         return
     additions = []
     if "env_vars" not in entry:
-        additions.append('env_vars = ["STITCH_API_KEY", "PEN_CLI_KEY", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "PEN_MCP_APP"]')
+        additions.append('env_vars = ["PEN_CLI_KEY", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "PEN_MCP_APP"]')
     if "startup_timeout_sec" not in entry:
         additions.append("startup_timeout_sec = 60")
     if additions:
@@ -70,9 +69,9 @@ def main(argv=None):
     include_claude = options.harness == "both"
     if platform.system() not in ("Linux", "Darwin"):
         raise RuntimeError("This installer supports Linux/macOS; Windows should use WSL or native app setup.")
-    node, npm, git, codex = [shutil.which(tool, path=ENV["PATH"]) for tool in ("node", "npm", "git", "codex")]
-    if not all((node, npm, git, codex)):
-        raise RuntimeError("Node >=22.19, npm, Git and Codex CLI are required.")
+    node, npm, codex = [shutil.which(tool, path=ENV["PATH"]) for tool in ("node", "npm", "codex")]
+    if not all((node, npm, codex)):
+        raise RuntimeError("Node >=22.19, npm and Codex CLI are required.")
     version = subprocess.check_output([node, "-p", "process.versions.node"], text=True).strip()
     if tuple(map(int, version.split("."))) < (22, 19, 0):
         raise RuntimeError("Node >=22.19 is required by the pen.dev CLI.")
@@ -95,24 +94,13 @@ def main(argv=None):
     for native in (pen_root / "dist/out").glob("mcp-server-*"):
         if not native.name.endswith(".exe"):
             native.chmod(native.stat().st_mode | 0o100)
-    vendor = ROOT / "stitch-skills"
-    if not vendor.exists():
-        call([git, "clone", "https://github.com/google-labs-code/stitch-skills.git", vendor])
-    else:
-        dirty = subprocess.check_output([git, "-C", str(vendor), "status", "--porcelain"], text=True)
-        if dirty:
-            raise RuntimeError("Canonical Stitch checkout has edits; preserve them before updating.")
-        call([git, "-C", vendor, "fetch", "origin", STITCH_REV])
-    call([git, "-C", vendor, "checkout", "--detach", STITCH_REV])
-    skills = list((vendor / "plugins/stitch-design/skills").iterdir())
-    skills += [vendor / "plugins/stitch-utilities/skills" / name for name in ("design-md", "enhance-prompt")]
     # Preserve the original pen.dev skill in a small canonical directory, not a
     # skill symlink into an entire dependency tree containing node_modules.
     pen_skill = ROOT / "vendor-skills/pen-design"
     pen_skill.mkdir(parents=True, exist_ok=True)
     shutil.copy2(pen_root / "SKILL.md", pen_skill / "SKILL.md")
     shutil.copy2(pen_root / "LICENSE", pen_skill / "LICENSE")
-    skills.append(pen_skill)
+    skills = [pen_skill]
     for skill in skills:
         if not (skill / "SKILL.md").is_file():
             continue
@@ -127,12 +115,12 @@ def main(argv=None):
     if not credentials.exists():
         descriptor = os.open(credentials, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as stream:
-            json.dump({"STITCH_API_KEY": "", "PEN_CLI_KEY": ""}, stream, indent=2)
+            json.dump({"PEN_CLI_KEY": ""}, stream, indent=2)
             stream.write("\n")
     launcher = BIN / "ui-design"
     launcher.write_text("#!/bin/sh\nexec " + shlex.quote(node) + " " + shlex.quote(str(runtime / "run.mjs")) + ' "$@"\n')
     launcher.chmod(0o755)
-    for name in ("stitch", "pencil"):
+    for name in ("pencil",):
         if not has_mcp(codex, name):
             call([codex, "mcp", "add", name, "--", launcher, name])
         else:
@@ -149,8 +137,7 @@ def main(argv=None):
     text = profile.read_text() if profile.exists() else ""
     if ".local/bin" not in text:
         profile.write_text(text + '\n# User CLI tools (ui-design setup)\nexport PATH="$HOME/.local/bin:$PATH"\n')
-    (ROOT / "versions.json").write_text(json.dumps({"stitch_skills_revision": STITCH_REV,
-        "pen_cli": PEN_VERSION, "runtime": json.loads((runtime / "package.json").read_text())["dependencies"]}, indent=2) + "\n")
+    (ROOT / "versions.json").write_text(json.dumps({"pen_cli": PEN_VERSION, "runtime": json.loads((runtime / "package.json").read_text())["dependencies"]}, indent=2) + "\n")
     selected = "Codex and Claude Code" if include_claude else "Codex only"
     print(f"User tooling configured for {selected}. Credentials were not copied into MCP configuration.")
     print("Restart harnesses to discover the new user skills/MCP entries. Authenticate providers securely.")
