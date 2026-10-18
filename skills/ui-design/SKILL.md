@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Use Stitch and pen.dev for source-grounded design system extraction, UI exploration, visual refinement and implementation in an existing frontend. Preserve repository design ownership, native forms and visual regression gates; distinguish desktop MCP from headless CLI capabilities.
+description: Reconcile product requirements with UI baselines, review actual visual differences and implement changes in an existing frontend. Use for baseline selection/correction, visual acceptance and source-grounded Stitch/pen.dev work; preserve design ownership, native forms and regression gates.
 ---
 
 # UI design workflow
@@ -23,7 +23,9 @@ requires no personal installation.
 
 ## Procedure
 
-1. Read the repository-local design brief before selecting a tool. Extract exact
+1. Reconcile requirements and references using [baseline consistency](#baseline-consistency)
+   before selecting a baseline, implementing a visible change or accepting a diff.
+   Read the repository-local design brief before selecting a tool. Extract exact
    source values and semantic roles, including theme variants and source SHA.
    A generated DESIGN.md or .pen library is a derived design artifact, never a
    replacement token authority. Keep shared foundations and product layouts
@@ -61,10 +63,49 @@ requires no personal installation.
    production files. Run the repository's applicable design, behavioral and pixel
    checks; review differences before an intentional baseline update.
 
+## Baseline consistency
+
+Record a short mapping in the existing issue or PR: decision/source, affected
+screen or state, expected visible behavior, and reference disposition (preserve,
+update or unresolved). Scale it to the change; a small change may need one row.
+Use current task scope and settled product decisions to determine where an older
+reference remains applicable. Approval of a historical screen does not require
+retaining capabilities or invitations superseded by later requirements.
+Resolve clear consequences within the authorized scope; ask only about genuine
+conflicts or new design choices, with representative images and concrete options.
+Keep unrelated work moving while an affected decision remains unresolved.
+
+Check capability changes against navigation, onboarding, empty states, help and
+direct-call boundaries. Verify behavior separately from pixel stability. Add
+user-facing explanations only when they help users act or decide; an internal
+architecture constraint alone is not a copy requirement.
+
+Inspect representative actual reference/candidate images and diffs for every
+distinct change family, including relevant interactions. Logs, hashes, decreasing
+diff counts and another agent's conclusion do not replace viewing the images.
+Classify each family as an implementation defect, stale reference, incorrect
+test/fixture state, or unresolved product decision, and record its reason/action.
+Check the relevant interaction, implementation and fixture before attributing a
+different value to a test error or treating a retained disclosure as active
+capability delivery. Screenshots alone do not establish those behavioral claims.
+Group repeated sizes/themes by cause while retaining every required state.
+If images cannot be inspected, report the visual-review limit without claiming
+visual acceptance; continue independent checks and reviewable preparation.
+
+Validate representative affected states early, then run the repository's required
+final coverage on the delivered tree. Correct only references justified by the
+settled requirement through the repository's supported procedure; retain original
+evidence, thresholds and state coverage. Never substitute bulk golden replacement,
+masks or changed capture inputs for explaining a mismatch. Record intentional
+changes in the durable baseline/contract; artifact-specific acceptance records
+cannot supply missing product intent or reopen an already settled decision.
+
 ## Completion
 
 Report source/ref, artifact paths, each harness's actual discovery/tool-call
 evidence, authentication gaps and desktop/cloud limitations. Separate static
 configuration, MCP transport, successful tool calls and visual acceptance.
+Include the requirement mapping, reviewed image families, classified differences,
+justified baseline changes and final check results/limits in the existing handoff.
 Minimal setup smoke tests list Stitch projects and read pen.dev app state; they
 do not require generation, production data uploads or baseline changes.

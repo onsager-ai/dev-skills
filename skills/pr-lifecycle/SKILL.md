@@ -50,7 +50,14 @@ compliance claim.
 For a visible UI change, show a small set of actual before/after screenshots from
 the base and head under the same viewport, theme, route and fixture. Label each
 comparison and link the larger evidence set. State when a baseline is unavailable;
-never synthesize an image as validation. Use a compact diagram only when branches,
+never synthesize an image as validation. Follow the repository's UI workflow to
+identify the governing product decisions, expected visible changes, actual image
+families inspected, and why each reference change is justified. Group repeated
+states by cause and separate implementation, reference and fixture defects from
+unresolved product choices. Existing explicit decisions do not need fresh approval
+merely because an older baseline contradicts them. Preserve repository-specific
+acceptance gates and report any visual inspection limit.
+Use a compact diagram only when branches,
 ownership or state transitions are clearer than prose. Omit empty template sections
 and visuals that do not help review.
 
