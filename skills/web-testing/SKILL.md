@@ -11,14 +11,7 @@ Exploratory, AI-driven validation of dashboard UI changes — **not** regression
 
 ## Relationship to visual baseline review
 
-For code-first visual acceptance or a proposed baseline change, follow the
-repository's canonical UI design workflow, including its requirement-to-state
-mapping and deterministic Storybook/Playwright capture process. This L2
-procedure remains exploratory route and interaction coverage; its screenshots
-do not substitute for matched reference/candidate/diff images or establish
-baseline acceptance. Story fixtures can verify presentation states, but API,
-authorization, runtime, reconnect and other end-to-end claims need the product's
-real behavioral and integration gates.
+For code-first visual acceptance or a proposed baseline change, follow the repository's canonical UI design workflow, including its requirement-to-state mapping and deterministic Storybook/Playwright capture process. This L2 procedure remains exploratory route and interaction coverage; its screenshots do not substitute for matched reference/candidate/diff images or establish baseline acceptance. Story fixtures can verify presentation states, but API, authorization, runtime, reconnect and other end-to-end claims need the product's real behavioral and integration gates.
 
 ## When to invoke
 

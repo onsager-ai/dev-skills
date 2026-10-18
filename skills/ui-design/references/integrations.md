@@ -1,9 +1,8 @@
 # Optional user-level design integrations
 
-This setup is optional and applies only when a task calls for pen.dev tooling.
-The source-first component, Storybook, Playwright, capture and product-check
-workflow needs no pen.dev account, `PEN_CLI_KEY`, desktop socket or user-level
-installation. Do not install or migrate credentials just to follow that workflow.
+This setup is optional and applies only when a task calls for pen.dev tooling. The source-first component, Storybook, Playwright, capture and product-check workflow needs no pen.dev account, `PEN_CLI_KEY`, desktop socket or user-level installation. Do not install or migrate credentials just to follow that workflow.
+
+Account access does not authorize uploading private source or data; use sanitized assets within the task scope and prefer synthetic fixtures over private transcripts or authenticated personal pages.
 
 Install from the canonical dev-skills source, once per machine or persistent
 cloud home. The installer writes no product files and preserves existing named
