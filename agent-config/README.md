@@ -47,10 +47,7 @@ For ordinary work, just use the repo. To check drift locally:
 node .agents/sync.mjs --check
 ```
 
-To author a local skill, edit its canonical `.agents/skills` source, then regenerate
-with a dev-skills checkout containing the pinned revision. To change shared
-behavior, edit dev-skills; consumers do not fork generated bodies. A maintainer
-can change selections and regenerate explicitly:
+To author a local skill, edit its canonical `.agents/skills` source, then regenerate with a dev-skills checkout containing the pinned revision. To change shared behavior, land the reviewed change in dev-skills first; consumers do not fork generated bodies or adopt a moving branch. Each manifest-based consumer then selects the exact reviewed full source SHA in `source.revision`, regenerates its managed projection and reviews that diff with its product-owned overlay. A consumer without this manifest keeps its existing contribution process. Shared source CI does not establish product adoption or product acceptance. A maintainer can change selections and regenerate explicitly:
 
 ```sh
 node .agents/sync.mjs --source /path/to/dev-skills --revision <full-commit-sha>
