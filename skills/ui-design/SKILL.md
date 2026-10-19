@@ -36,6 +36,8 @@ update or unresolved). Scale it to the change; a small change may need one row.
 Use current task scope and settled product decisions to determine where an older
 reference remains applicable. Approval of a historical screen does not require
 retaining capabilities or invitations superseded by later requirements.
+
+When the task claims a complete migration from a legacy acceptance-baseline system, inventory every original baseline and acceptance state, not only the states touched by the current diff. Follow the [migration inventory and disposition rules](references/storybook-visual-testing.md#complete-a-legacy-baseline-migration): map every active state to deterministic Storybook and Playwright coverage, and cite an authoritative product requirement or decision for every obsolete, superseded or intentionally inactive state. A pilot or partial screen set does not establish full migration completion.
 Resolve clear consequences within the authorized scope; ask only about genuine
 conflicts or new design choices, with representative images and concrete options.
 Keep unrelated work moving while an affected decision remains unresolved.

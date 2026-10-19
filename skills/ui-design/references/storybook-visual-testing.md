@@ -23,6 +23,18 @@ Example:
 
 The example illustrates the fields only. Use the repository's actual names, contracts and reference dispositions. A story makes a presentation state reproducible; it does not establish API, authorization, runtime, reconnect or other end-to-end behavior.
 
+## Complete a legacy-baseline migration
+
+When a task migrates an existing acceptance-baseline system, first inventory every baseline and acceptance state in that system, including states no longer linked from the current UI. Record the original identifier or artifact path, its owning product contract or decision, current status, Storybook story and required capture variants, and its disposition. The inventory is complete only when each entry is either:
+
+- active and covered by a deterministic story plus the product's required
+  Playwright interaction/captures; or
+- obsolete, superseded or intentionally inactive, with the authoritative
+  requirement or decision that retires it and the reason it no longer needs an
+  acceptance baseline.
+
+Mark genuine conflicts unresolved and name the owner who can settle them. Do not count a representative pilot, a subset of screens, or an empty Storybook setup as completion of a full migration. Keep the inventory in the product-owned issue, PR or durable test plan so later changes can update it. A design-tool file or image may remain historical evidence or an optional exploration source; it is not the active acceptance authority after a state has been migrated. The product contract and its recorded decision govern whether that state remains active.
+
 ## Discover the product renderer and build
 
 Before adding or changing visual tooling, inspect the repository-owned design instructions, scripts, Storybook configuration, Playwright configuration, lockfile and existing visual fixtures. Follow the declared package manager, renderer and browser version. Reuse the product's existing server/test state mechanism if it does not use Storybook. Do not impose a universal component framework, tokens package, capture service or manifest format.
@@ -40,3 +52,5 @@ Use the product's pinned Playwright setup to exercise mapped interactions and ca
 Record provenance with each candidate using the repository's existing artifact format: source commit, capture command, lockfile and browser/renderer versions, story or served-test identifier, fixture version, viewport/theme and reference revision. Preserve original captures and thresholds. Commit candidate images and their reason as clearly unapproved review artifacts in the PR, separate from the approved reference; the candidate commit does not approve or promote it.
 
 The visual CI gate compares and uploads evidence. It must fail for a missing baseline, an unexpected dimension change, drift beyond the product's declared threshold, or an omitted required capture. It must not rewrite, approve or commit goldens. Require human review before accepting or promoting a candidate as an approved reference through the product's existing process. A story or isolated visual pass does not replace real-product behavioral and integration gates.
+
+For a full migration, the reviewed Git change must make the complete inventory auditable alongside the Storybook stories, capture configuration and any explicitly approved reference updates. A candidate image remains unapproved until a human review records acceptance through the product's existing process.
