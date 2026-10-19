@@ -30,6 +30,8 @@ work diary. Keep a small change to a short paragraph plus validation. Aim for
 Link detailed protocols, benchmark tables and historical command logs. Include
 only evidence that helps assess the change or its readiness.
 
+For cross-repository adoption using exact-source pins or projections, follow the repository-defined upstream review and landing prerequisites. A prepared draft pin or projection may document the intended source and proposed adoption before those prerequisites are complete; it does not count as completed adoption.
+
 For a larger change, use this order:
 
 - **Problem and outcome:** state the trigger, previous behavior and new behavior.
