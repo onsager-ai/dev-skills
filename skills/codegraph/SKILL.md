@@ -1,6 +1,6 @@
 ---
 name: codegraph
-description: Pre-indexed code knowledge graph (MCP, SQLite + tree-sitter) for faster, lower-token exploration of brownfield codebases. Use when starting work on a repo larger than ~500 files or when the task involves cross-file traversal — "where is X used", "what calls Y", "what breaks if I change Z", "trace flow from A to B", "explain this subsystem". Skip for single-file edits or sessions shorter than the cold-start cost. Triggers include "codegraph", "code graph", "index this repo", "where is X defined", "find callers of", "callees of", "blast radius of changing X", "explore this codebase". Cuts the grep + Read loops needed to orient, via O(1) SQLite lookups and FTS5 search over 8 MCP tools — but it's an unsound tree-sitter approximation, so grep stays the completeness backstop for renames/exhaustive callers.
+description: Explore indexed code using a tree-sitter knowledge graph. Use for cross-file traversal, callers, impact or subsystem orientation in larger repositories; verify exhaustive results with text search.
 ---
 
 # codegraph
@@ -61,14 +61,4 @@ The three failure modes (measured on a ~580-file Rust+TS repo):
 - `references/usage.md` — which of the 8 MCP tools to use when, with main-session vs subagent rules
 - `references/spike.md` — cold-start measurement protocol; run once per new target repo before relying on codegraph in cloud sessions
 
-## Known integration targets
-
-Cold-start measured locally (Node 22, 4 cores). Cloud cold-start still pending — re-run `references/spike.md` in a cloud session before relying on these numbers there.
-
-| Repo | Indexed files | Nodes / edges | DB size | Cold init+index | Query wall |
-|---|---|---|---|---|---|
-| onsager-ai/onsager | 578 (rust + tsx/ts) | 8.6k / 20k | 24 MB | 12s | ~0.9s |
-| crawlab-team/crawlab | 644 (go) | 6.8k / 15k | 11 MB | 6s | ~0.9s |
-| codervisor/leanspec | 695 (tsx/rust/ts) | 8.9k / 21k | 23 MB | 10s | ~0.9s |
-
-Per-query wall is dominated by Node startup — the SQLite work itself is milliseconds. End-to-end cold-start including one-shot `npx install` is ~13–19s for repos in this size class.
+Read [integration targets](references/integration-targets.md) when assessing measured cold-start costs for known repositories.

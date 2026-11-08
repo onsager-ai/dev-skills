@@ -1,6 +1,6 @@
 ---
 name: docs-drift-guard
-description: Reduce documentation drift by giving facts one authored home, generating mutable references, executing examples and checking local links through repository-owned tooling. Use for stale docs, broken references or documentation maintenance.
+description: Reduce documentation drift by establishing authored sources, generating mutable references, executing examples and checking links. Use for stale documentation, broken references or docs maintenance.
 ---
 
 # Documentation drift guard

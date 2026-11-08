@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Reconcile product requirements with UI baselines, review actual visual differences and implement changes in an existing frontend. Use for baseline selection/correction, visual acceptance and Storybook-based review; preserve design ownership, native forms and regression gates.
+description: Reconcile product requirements with UI baselines, review visual differences and implement existing frontend changes. Use for design review, baseline selection or correction, visual acceptance and Storybook review while preserving design ownership, native forms and regression gates.
 ---
 
 # UI design workflow

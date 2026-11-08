@@ -1,6 +1,6 @@
 ---
 name: issue-spec
-description: Create or revise a focused specification issue when explicitly requested or required by the repository contribution policy. Discover existing work, capture intent and acceptance criteria, and reconcile decisions before implementation.
+description: Draft or revise a focused specification issue when requested or required by repository policy. Use to discover existing work, define acceptance criteria or reconcile implementation decisions.
 ---
 
 # Issue specification

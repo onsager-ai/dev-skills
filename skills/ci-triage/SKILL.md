@@ -1,6 +1,6 @@
 ---
 name: ci-triage
-description: Investigate a failed GitHub Actions run or PR check, distinguish regression, flake, infrastructure and insufficient evidence, and reproduce with repository-owned gates and fixtures. Use for failed runs, red main or red PR checks.
+description: Investigate failed GitHub Actions runs and PR checks, classify evidence and reproduce using repository gates. Use for failed checks, red main, red PRs or uncertain CI failures.
 ---
 
 # CI triage
