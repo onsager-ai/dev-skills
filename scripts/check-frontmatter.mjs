@@ -2,6 +2,10 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const skillsDirectory = path.resolve('skills');
+// Every SKILL.md is loaded whole on invocation and every description sits in the
+// always-loaded catalog, so both are budgeted. Move detail into references/.
+const MAX_SKILL_BYTES = 10 * 1024;
+const MAX_DESCRIPTION_CHARS = 400;
 const failures = [];
 
 const skillDirectories = (await readdir(skillsDirectory, { withFileTypes: true }))
@@ -79,6 +83,25 @@ for (const directoryName of skillDirectories) {
     if ((isBlockScalar && !field.hasContent) || (!isBlockScalar && !scalarValue)) {
       failures.push(`${filePath}:${field.lineNumber}: ${requiredField} must not be empty`);
     }
+  }
+
+  const descriptionField = fields.get('description');
+  if (descriptionField) {
+    if (/^[>|]/.test(descriptionField.rawValue)) {
+      failures.push(`${filePath}:${descriptionField.lineNumber}: description must be a single-line scalar`);
+    } else {
+      const length = descriptionField.rawValue.replace(/^(['"])(.*)\1$/, '$2').trim().length;
+      if (length > MAX_DESCRIPTION_CHARS) {
+        failures.push(
+          `${filePath}:${descriptionField.lineNumber}: description is ${length} chars (max ${MAX_DESCRIPTION_CHARS})`,
+        );
+      }
+    }
+  }
+
+  const bytes = Buffer.byteLength(contents);
+  if (bytes > MAX_SKILL_BYTES) {
+    failures.push(`${filePath}: ${bytes} bytes (max ${MAX_SKILL_BYTES}); move detail into references/`);
   }
 
   const nameField = fields.get('name');

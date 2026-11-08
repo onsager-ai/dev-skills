@@ -1,6 +1,6 @@
 ---
 name: pre-push
-description: Prepare an authorized branch for publication by inspecting the intended base, resolving conflicts, running repository-owned gates on the relevant tree, and checking the declared contribution process. Use before push, PR preparation or merge-conflict recovery.
+description: Prepare authorized commits and branches for publication, including staging, messages, base integration and repository gates. Use before committing or pushing, or when resolving merge conflicts.
 ---
 
 # Pre-push
@@ -20,6 +20,8 @@ and base branch, which may differ from main. Load
 [harness-operations](../harness-operations/SKILL.md) if a tool mapping is needed.
 
 ## Procedure
+
+Read [commit preparation](references/commits.md) when staging changes or writing a commit message.
 
 1. Inspect the current diff and intended base. Refresh that base through the
    configured remote and record its SHA. If fetching is blocked, report that the

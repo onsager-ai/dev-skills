@@ -1,15 +1,6 @@
 ---
 name: parallel-worktrees
-description: >
-  Run multiple AI coding agent sessions in parallel using git worktrees — each
-  agent isolated in its own worktree, working on a separate branch. Use this
-  skill whenever the user wants to: run two or more AI agents simultaneously on
-  different features or bugs, set up isolated agent workspaces in the same repo,
-  push parallel branches to GitHub and open/update PRs, coordinate between
-  concurrent agent sessions, or clean up after merging. Triggers on: "parallel
-  agents", "multiple agent sessions", "git worktree", "run agents in parallel",
-  "work on two things at once", "isolated agent workspace", "spin up another
-  agent", or any request involving simultaneous AI-assisted development streams.
+description: Use for parallel agent sessions with git worktree, coordinating isolated branches and pull requests, isolated dev stacks per branch behind a local proxy, or preventing commits on main with a commit guard.
 metadata:
   author: Codervisor
   version: 0.1.0
@@ -171,10 +162,12 @@ Read these when you need more depth:
 - `references/github-pr-sync.md` — PR creation, draft PRs, linking, status checks, merge strategies via `gh` CLI
 - `references/agent-coordination.md` — Patterns for coordinating output across parallel sessions: sequencing, handoffs, shared state via PRs
 
-## Setup & Activation
+## Optional add-ons
 
-```bash
-npx skills add -g onsager-ai/dev-skills --skill parallel-worktrees -a claude-code -y
-```
+### Commit guard
 
-Auto-activates when: user mentions "worktree", "parallel agents", "multiple agent sessions", or asks to work on several features simultaneously with AI.
+Install the optional global pre-commit hook to prevent commits on `main` or `master` and keep detected agent sessions out of the main checkout. It applies to repos marked by an `.envrc` exporting `DEV_HOST`, and delegates to their own hooks. See [commit guard](references/commit-guard.md) for policy, installation, verification, and limits.
+
+### Dev proxy
+
+Run an isolated Compose stack per worktree behind a shared Traefik proxy, or route host-run dev stacks through it. See [dev proxy](references/devproxy.md) for machine setup, repo onboarding, daily use, host-run stacks, and troubleshooting.

@@ -33,7 +33,6 @@ for (const name of common) {
 // Question-tool variants belong in native adapters, never portable guidance.
 for (const relative of [
   'agent-config/rules/human-decisions.md',
-  'skills/rust-node-bootstrap/templates/AGENTS.md',
   'skills/railway/SKILL.md',
 ]) {
   if (/AskUserQuestion|request_user_input(?:_async)?/.test(fs.readFileSync(path.join(root, relative), 'utf8'))) {

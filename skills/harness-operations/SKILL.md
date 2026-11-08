@@ -1,6 +1,6 @@
 ---
 name: harness-operations
-description: Map a workflow operation to the tools and instruction-discovery mechanisms actually available in Claude Code, Codex or ChatGPT Work. Use when a common or repository skill needs structured human questions, file, GitHub, check/log or subscription capabilities, or when discovery/authentication is uncertain.
+description: Map workflow operations to available tools and instruction discovery in Claude Code, Codex or ChatGPT Work. Use for human questions, files, GitHub, checks, logs or subscriptions when capabilities or authentication are uncertain.
 ---
 
 # Harness operations

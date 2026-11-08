@@ -41,23 +41,6 @@ their existing pinned-source process. Record a fresh Work session's actual
 instruction and skill reads separately from static checks. Plugin packaging and
 distribution are a separate opt-in step; this entrypoint does not install one.
 
-## Legacy personal installation
-
-```bash
-# Install every skill, user-global, for Claude Code.
-npx skills add -g onsager-ai/dev-skills --skill '*' -a claude-code
-```
-
-Installed under `~/.claude/skills/<skill-name>/`. The skills load automatically whenever Claude Code starts in any directory.
-
-To install a single skill, drop the `'*'`:
-
-```bash
-npx skills add -g onsager-ai/dev-skills --skill plan-dag -a claude-code
-```
-
-Project-scope (drops symlinks into `./.claude/skills/`) is also supported, but the revised pilot distribution is checkout-local and checked in; personal installs are optional legacy usage.
-
 ## Skills
 
 The selected pilot procedures are harness-neutral. Their [harness-operations](skills/harness-operations/SKILL.md) dependency maps actual capabilities and loads only the matching Claude/Codex reference. Other optional catalog skills below retain their declared prerequisites.
@@ -65,24 +48,20 @@ The selected pilot procedures are harness-neutral. Their [harness-operations](sk
 | Skill | One-liner |
 | --- | --- |
 | [`issue-spec`](skills/issue-spec/SKILL.md) | Create/revise a focused spec under the repo's contribution policy; use its local medium, labels and impact overlays. |
-| [`ui-design`](skills/ui-design/SKILL.md) | Reconcile requirements and visual baselines, inspect actual diffs and implement within the existing stack; Storybook as the interactive review surface and repository-owned design contracts. |
-| [`pre-push`](skills/pre-push/SKILL.md) | Pre-push checklist for the SDD loop — sync the merge preview, walk merge-conflict patterns, run the repo's check gate, confirm a linked spec. Repo-agnostic; the gate command + collision patterns come from the consumer's AGENTS.md. |
-| [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | Post-push PR workflow — spec linking, Delivers, tracker refresh, CI triage (delegates to `ci-triage`), conflict recovery, webhook + post-push CI sweep. Repo-agnostic; CI-failure patterns come from the consumer's AGENTS.md. |
-| [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded done / in-progress / available-next / blocked. |
-| [`ci-triage`](skills/ci-triage/SKILL.md) | Triage failed CI runs on any GitHub-Actions–driven repo — regression vs flake vs infra, with a rolling `main-red` issue. |
-| [`docs-drift-guard`](skills/docs-drift-guard/SKILL.md) | Keep prose docs in sync with code — the drift-resistance ladder + altitude/one-home discipline, plus the `@onsager/docs-drift-check` CI floor that fails on any dead repo-relative link a Markdown doc cites. |
-| [`web-testing`](skills/web-testing/SKILL.md) | L2 AI-driven web UI testing for React/Vite dashboards. Procedure is repo-agnostic; example routes are Onsager-shaped, forkable. |
-| [`railway`](skills/railway/SKILL.md) | Operate Railway deployments from the CLI — logs, metrics, variables, deploys, SSH, DB shell. Optional bundled scripts are Onsager-specific wrappers. |
-| [`agent-browser`](skills/agent-browser/SKILL.md) | Browser automation CLI for AI agents — navigate, click, fill, screenshot, scrape. |
-| [`git-commit`](skills/git-commit/SKILL.md) | Disciplined git commit workflow — stage, write a clear message, commit. |
-| [`github-integration`](skills/github-integration/SKILL.md) | GitHub CLI patterns (`gh`) for issues, PRs, and cloud-auth pitfalls. |
-| [`parallel-worktrees`](skills/parallel-worktrees/SKILL.md) | Coordinate multiple agent sessions on parallel `git worktree` branches. |
-| [`rust-node-bootstrap`](skills/rust-node-bootstrap/SKILL.md) | Scaffold a new Rust + Node.js hybrid project (Cargo + pnpm + Turbo). |
-| [`rust-node-ci`](skills/rust-node-ci/SKILL.md) | GitHub Actions workflows for Rust + Node.js hybrid repos. |
-| [`rust-npm-publish`](skills/rust-npm-publish/SKILL.md) | Publish a Rust+Node hybrid as platform-specific npm packages with version sync. |
-| [`codegraph`](skills/codegraph/SKILL.md) | Pre-indexed code knowledge graph (MCP, SQLite + tree-sitter) for cross-file exploration of brownfield repos. Cloud cold-start spike protocol included. |
-| [`worktree-devproxy`](skills/worktree-devproxy/SKILL.md) | Per-worktree compose stacks behind one shared Traefik — `http://<worktree>.<repo>.localhost:8000`, Host-header routing, zero host ports / DNS / TLS. Bundles the `wt` manager script. |
-| [`worktree-discipline`](skills/worktree-discipline/SKILL.md) | One machine-global pre-commit hook: no commits on main, agents must work in worktrees (`CLAUDECODE=1` detection), auto-scoped to devproxy-onboarded repos, delegates to repo-local hooks. |
+| [`pre-push`](skills/pre-push/SKILL.md) | Before committing or pushing — commit discipline, merge-preview sync, conflict recovery, the repo's check gate and contribution-process confirmation. |
+| [`pr-lifecycle`](skills/pr-lifecycle/SKILL.md) | After a PR exists — delivery links, review comments, CI (delegates failures to `ci-triage`), conflicts and exact check state. |
+| [`ci-triage`](skills/ci-triage/SKILL.md) | Failed GitHub Actions runs — regression vs flake vs infra vs insufficient evidence, reproduced with repository-owned gates. |
+| [`docs-drift-guard`](skills/docs-drift-guard/SKILL.md) | One authored home per fact, generated references, executed examples and link checks. |
+| [`ui-design`](skills/ui-design/SKILL.md) | Reconcile requirements and visual baselines, review actual diffs and implement within the existing frontend; Storybook as the review surface. |
+| [`harness-operations`](skills/harness-operations/SKILL.md) | Capability adapter mapping common procedures onto Claude Code, Codex or ChatGPT Work tools. Pulled in automatically as a dependency. |
+| [`railway`](skills/railway/SKILL.md) | Operate Railway deployments from the CLI — logs, metrics, variables, deploys, rollbacks, SSH, DB shell. |
+| [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded by status. |
+| [`parallel-worktrees`](skills/parallel-worktrees/SKILL.md) | Parallel agent sessions on `git worktree` branches, with optional commit guard hook and per-worktree dev proxy. |
+| [`github-integration`](skills/github-integration/SKILL.md) | Generic `gh` CLI patterns and cloud-auth pitfalls not covered by the PR/CI procedures. |
+| [`agent-browser`](skills/agent-browser/SKILL.md) | Generic browser automation CLI — navigate, click, fill, screenshot, scrape. |
+| [`codegraph`](skills/codegraph/SKILL.md) | Pre-indexed code knowledge graph (MCP, SQLite + tree-sitter) for cross-file exploration of large brownfield repos. |
+
+Each SKILL.md stays under 10 KB and each description under 400 characters (`npm run check:frontmatter`); detail lives in the skill's `references/`, loaded only when needed. Project-specific skills (for example the former `web-testing` and `rust-*` skills, available in git history) belong in the consuming repository as local skills.
 
 ## What lives here vs. what stays per-repo
 
@@ -90,7 +69,7 @@ The selected pilot procedures are harness-neutral. Their [harness-operations](sk
 | --- | --- | --- |
 | Cross-repo methodology | **dev-skills** (this repo) | `issue-spec`, `pre-push`, `pr-lifecycle`, `ci-triage`, `plan-dag` |
 | User-facing product loop | `onsager-ai/onsager-skills` | `onsager-design-workflow`, `onsager-run-workflow` |
-| Repo-local dev process | the consumer repo's `.claude/skills/` | `onsager-dev-process`, `duhem-dev-process` |
+| Repo-local dev process | the consumer repo's `.agents/skills/` (`local_skills`) | `onsager-dev-process`, `duhem-dev-process` |
 
 A repo-local skill stays local when it carries the repo's specific area taxonomy, build-tool conventions, or product-specific seams — `<repo>-dev-process` is the canonical such skill. A skill belongs here when the procedure generalizes — Onsager, lean-spec, and Duhem all benefit from the same shape with at most a thin CLAUDE.md overlay. The pre-push and PR-lifecycle workflows used to be per-repo (`onsager-pre-push`, `duhem-pr-lifecycle`, …); they converged enough to consolidate into the global `pre-push` / `pr-lifecycle` skills, with each repo's gate command, collision patterns, and CI-failure table overlaid via its AGENTS.md / `<repo>-dev-process`.
 
@@ -100,9 +79,7 @@ This bundle is the consolidation target for engineering-methodology skills used 
 
 1. Open a PR against this repo with the SKILL.md edit (and any accompanying `scripts/` / `references/` / `templates/` changes).
 2. Get it reviewed and merged.
-3. Checkout-local consumers receive reviewed update PRs from their generated workflow. Legacy personal installs can be refreshed manually.
-
-The installed copies under `~/.claude/skills/` are **read-only**. Consumer repos that include the `check-skill-edit.sh` PreToolUse hook will block direct edits to any installed copy that carries a `.upstream-source` marker — the fix is to PR upstream and re-run `npx skills add`.
+3. Checkout-local consumers receive reviewed update PRs from their generated workflow. Generated copies in consumers are read-only; change them here.
 
 ## Adopting in another repo
 
@@ -110,7 +87,6 @@ Use [checkout-local synchronization](agent-config/README.md). Select shared skil
 common rules and local skill names in the manifest, generate once, and commit the
 result. Normal developers then clone and work; scheduled draft-update PRs maintain
 the pinned source. Repository contracts and overlays retain local ownership.
-Legacy personal installation above remains optional.
 
 ## License
 
