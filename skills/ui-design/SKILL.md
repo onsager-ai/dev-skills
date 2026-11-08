@@ -33,8 +33,10 @@ needed.
 3. Implement in authored frontend sources using existing components/controllers.
    Preserve server forms, accessibility, security, focus, touch and lifecycle
    ownership. Regenerate bundles with their owning build tool, never hand-edit
-   them. Run the repository's applicable design, behavioral and pixel checks;
-   review differences before an intentional baseline update.
+   them. Run the repository's applicable design and behavioral checks, and its
+   pixel checks where it has them; review differences before an intentional
+   baseline update. A repository without pixel comparison relies on reviewed
+   screenshots; do not add one unless its contract asks for it.
 
 ## Baseline consistency
 
@@ -53,8 +55,9 @@ direct-call boundaries. Verify behavior separately from pixel stability. Add
 user-facing explanations only when they help users act or decide; an internal
 architecture constraint alone is not a copy requirement.
 
-Inspect representative actual reference/candidate images and diffs for every
-distinct change family, including relevant interactions. Logs, hashes, decreasing
+Inspect representative actual images for every distinct change family, including
+relevant interactions: reference/candidate images and diffs where the repository
+compares pixels, otherwise its captured review screenshots. Logs, hashes, decreasing
 diff counts and another agent's conclusion do not replace viewing the images.
 Classify each family as an implementation defect, stale reference, incorrect
 test/fixture state, or unresolved product decision, and record its reason/action.
@@ -76,5 +79,5 @@ cannot supply missing product intent or reopen an already settled decision.
 ## Completion
 
 Report source/ref, the stories or artifacts reviewed, the requirement mapping,
-reviewed image families, classified differences, justified baseline changes and
+reviewed image families, classified differences, any justified baseline changes and
 final check results/limits in the existing handoff.
