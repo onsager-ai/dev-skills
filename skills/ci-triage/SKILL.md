@@ -20,6 +20,10 @@ head from the tested merge preview. Use
 requires a capability mapping. Authentication and log availability must be
 observed; do not assume all connectors expose the same fields or limitations.
 
+If expected PR runs are missing or a "no checks reported" alert arrives, follow
+[PR CI trigger recovery](../pr-lifecycle/references/pr-ci-trigger.md) before
+failure classification. Passing manual dispatches do not establish PR checks.
+
 ## Procedure
 
 1. Read run/job status, first failed step and bounded logs through the available
