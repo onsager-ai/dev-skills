@@ -33,10 +33,13 @@ Read [review and cleanup](references/review-and-cleanup.md) when writing a revie
 2. List exact delivered Plan items when the PR is a spec slice. Keep the spec's
    own Plan unchecked until the slice lands. Do not imply that passing checks or
    creating a draft completes adoption tests that remain unrun.
-3. Read both commit-status and check/workflow surfaces for the exact head SHA.
-   Subscriptions may help when supported, but do not replace this explicit sweep.
-   Distinguish passed, failed, pending, cancelled, skipped and unavailable checks.
-   A skipped required gate or an absent result is not a pass.
+3. After opening or pushing, follow the
+   [PR CI trigger procedure](references/pr-ci-trigger.md): verify within about
+   three minutes that expected `pull_request` runs exist for the exact head SHA.
+   Apply it immediately on a "no checks reported" notification too. Read both
+   commit-status and check/workflow surfaces; subscriptions do not replace this
+   sweep. Distinguish passed, failed, pending, cancelled, skipped and unavailable
+   checks. A skipped required gate or an absent result is not a pass.
 4. Use [ci-triage](../ci-triage/SKILL.md) to classify failures. Reproduce
    using repo-owned gates/fixtures. Fix defects within scope; report blocked logs,
    setup. Request pending human decisions through the structured question
