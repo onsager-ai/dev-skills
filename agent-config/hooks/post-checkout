@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+run_local() {
+  if [ -x "$root/.githooks/post-checkout.local" ]; then
+    "$root/.githooks/post-checkout.local" "$@"
+  fi
+}
+
+if [ -z "${AGENT_ROOT_GUARD:-}" ] && [ "$3" = '1' ] \
+  && [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ]; then
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  if [ "$branch" != 'main' ]; then
+    if [ -n "$(git status --porcelain -uno)" ]; then
+      echo "GUARD: the primary checkout must stay on main (now on '$branch')." >&2
+      echo '       The working tree has uncommitted changes, so it was NOT reverted.' >&2
+      echo '       Commit or stash your work, then: git switch main' >&2
+    else
+      AGENT_ROOT_GUARD=1 git checkout -q main 2>/dev/null
+      echo "GUARD: the primary checkout is pinned to main; '$branch' was not kept here." >&2
+      echo '       For feature work use a worktree.' >&2
+    fi
+  fi
+fi
+run_local "$@"

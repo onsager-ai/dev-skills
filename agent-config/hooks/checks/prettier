@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+if git diff --cached --quiet --diff-filter=ACMR; then
+  exit 0
+else
+  status=$?
+  [ "$status" -eq 1 ] || exit "$status"
+fi
+root=$(git rev-parse --show-toplevel)
+prettier="$root/node_modules/.bin/prettier"
+if [ ! -x "$prettier" ]; then
+  echo 'prettier missing: run npm ci (repo root)' >&2
+  exit 1
+fi
+git diff --cached --name-only -z --diff-filter=ACMR | xargs -0 "$prettier" --check --ignore-unknown --
