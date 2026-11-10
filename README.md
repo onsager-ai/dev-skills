@@ -56,7 +56,7 @@ The selected pilot procedures are harness-neutral. Their [harness-operations](sk
 | [`harness-operations`](skills/harness-operations/SKILL.md) | Capability adapter mapping common procedures onto Claude Code, Codex or ChatGPT Work tools. Pulled in automatically as a dependency. |
 | [`railway`](skills/railway/SKILL.md) | Operate Railway deployments from the CLI — logs, metrics, variables, deploys, rollbacks, SSH, DB shell. |
 | [`plan-dag`](skills/plan-dag/SKILL.md) | Render an issue / sub-issue / PR plan as a high-DPI PNG dependency DAG, color-coded by status. |
-| [`parallel-worktrees`](skills/parallel-worktrees/SKILL.md) | Parallel agent sessions on `git worktree` branches, with optional commit guard hook and per-worktree dev proxy. |
+| [`parallel-worktrees`](skills/parallel-worktrees/SKILL.md) | Parallel agent sessions on `git worktree` branches and per-worktree dev proxy. Repository hook selection is documented in agent-config. |
 | [`github-integration`](skills/github-integration/SKILL.md) | Generic `gh` CLI patterns and cloud-auth pitfalls not covered by the PR/CI procedures. |
 | [`agent-browser`](skills/agent-browser/SKILL.md) | Generic browser automation CLI — navigate, click, fill, screenshot, scrape. |
 | [`codegraph`](skills/codegraph/SKILL.md) | Pre-indexed code knowledge graph (MCP, SQLite + tree-sitter) for cross-file exploration of large brownfield repos. |

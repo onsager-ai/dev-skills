@@ -23,6 +23,12 @@ function fixture(t) {
   write(source,'skills/child/check.sh','#!/bin/sh\nexit 0\n');
   fs.chmodSync(path.join(source,'skills/child/check.sh'),0o755);
   write(source,'agent-config/rules/checks.md','Report actual check outcomes.');
+  write(source,'agent-config/hooks/README.md','Generated hooks.');
+  write(source,'agent-config/hooks/pre-commit','#!/bin/sh\nset -eu\nroot=$(git rev-parse --show-toplevel)\ncd "$root"\n__HOOK_CHECKS__\n');
+  write(source,'agent-config/hooks/checks/rustfmt','#!/bin/sh\nexit 0\n');
+  write(source,'agent-config/hooks/checks/prettier','#!/bin/sh\nexit 0\n');
+  write(source,'agent-config/hooks/post-checkout','#!/bin/sh\nexit 0\n');
+  for (const file of ['agent-config/hooks/pre-commit','agent-config/hooks/checks/rustfmt','agent-config/hooks/checks/prettier','agent-config/hooks/post-checkout']) fs.chmodSync(path.join(source,file),0o755);
   write(source,'agent-config/sync.mjs',fs.readFileSync(new URL('./sync.mjs',import.meta.url)));
   write(source,'agent-config/workflow.yml',fs.readFileSync(new URL('./workflow.yml',import.meta.url)));
   write(source,'LICENSE','Fixture license.');
@@ -88,6 +94,25 @@ test('upstream verification rejects rehashed edits; sync refuses silently overwr
 test('removing a selection removes stale managed dependencies and leaves local skills',t => {
   const f=fixture(t); f.sync(); f.manifest.skills=[];f.save();f.sync();f.check(true);
   assert.deepEqual(fs.readdirSync(path.join(f.repo,'.agents/skills')),['local']);
+});
+
+test('generates selected hooks, records modes, preserves local extensions and rejects unowned hooks',t => {
+  const f=fixture(t); f.manifest.hooks=['rustfmt','prettier','primary-checkout-guard'];f.save();f.sync();f.check(true);
+  const lock=JSON.parse(fs.readFileSync(path.join(f.repo,'.agents/lock.json')));
+  for (const file of ['.githooks/pre-commit','.githooks/checks/rustfmt','.githooks/checks/prettier','.githooks/post-checkout']) {
+    assert.equal(lock.files[file].owner,'hooks'); assert.equal(lock.files[file].mode,'100755');
+    assert.ok(fs.statSync(path.join(f.repo,file)).mode & 0o111);
+  }
+  assert.match(fs.readFileSync(path.join(f.repo,'.githooks/pre-commit'),'utf8'),/checks\/rustfmt[\s\S]*checks\/prettier/);
+  f.write(f.repo,'.githooks/pre-commit.local','#!/bin/sh\nexit 0\n'); f.sync();
+  assert.equal(fs.readFileSync(path.join(f.repo,'.githooks/pre-commit.local'),'utf8'),'#!/bin/sh\nexit 0\n');
+  const g=fixture(t); g.manifest.hooks=['rustfmt'];g.save();g.write(g.repo,'.githooks/pre-commit','repo-owned');
+  assert.throws(()=>g.sync(),/non-generated hook/);
+});
+
+test('rejects unknown and duplicate hooks',t => {
+  const f=fixture(t);f.manifest.hooks=['unknown'];f.save();assert.throws(()=>f.sync(),/Invalid hooks/);
+  f.manifest.hooks=['rustfmt','rustfmt'];f.save();assert.throws(()=>f.sync(),/Duplicate hooks/);
 });
 
 test('rejects floating revisions, name collisions, upstream symlinks and escaping references',t => {
