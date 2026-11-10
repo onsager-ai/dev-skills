@@ -153,7 +153,8 @@ export function run(args = process.argv.slice(2)) {
     }
     const skills = [...previous.resolved_skills, ...manifest.local_skills].sort();
     for (const base of ['.agents/skills', '.claude/skills']) {
-      const catalog = fs.readdirSync(path.join(root, base)).sort();
+      const dir = path.join(root, base);
+      const catalog = fs.existsSync(dir) ? fs.readdirSync(dir).sort() : [];
       if (JSON.stringify(catalog) !== JSON.stringify(skills)) fail(`Unmanaged skill/collision: ${base}`);
       for (const name of skills) {
         const canonical = walk(root, `.agents/skills/${name}`);
