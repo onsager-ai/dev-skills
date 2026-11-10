@@ -103,7 +103,7 @@ test('generates selected hooks, records modes, preserves local extensions and re
     assert.equal(lock.files[file].owner,'hooks'); assert.equal(lock.files[file].mode,'100755');
     assert.ok(fs.statSync(path.join(f.repo,file)).mode & 0o111);
   }
-  assert.match(fs.readFileSync(path.join(f.repo,'.githooks/pre-commit'),'utf8'),/checks\/rustfmt[\s\S]*checks\/prettier/);
+  assert.match(fs.readFileSync(path.join(f.repo,'.githooks/pre-commit'),'utf8'),/\$hooks_dir\/checks\/rustfmt[\s\S]*\$hooks_dir\/checks\/prettier/);
   f.write(f.repo,'.githooks/pre-commit.local','#!/bin/sh\nexit 0\n'); f.sync();
   assert.equal(fs.readFileSync(path.join(f.repo,'.githooks/pre-commit.local'),'utf8'),'#!/bin/sh\nexit 0\n');
   const g=fixture(t); g.manifest.hooks=['rustfmt'];g.save();g.write(g.repo,'.githooks/pre-commit','repo-owned');

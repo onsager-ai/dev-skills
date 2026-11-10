@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-root=$(git rev-parse --show-toplevel)
+hooks_dir=$(cd "$(dirname "$0")" && pwd)
 [ -n "${AGENT_ROOT_GUARD:-}" ] && exit 0
 
 if [ "$3" = '1' ] \
@@ -19,6 +19,6 @@ if [ "$3" = '1' ] \
     fi
   fi
 fi
-if [ -x "$root/.githooks/post-checkout.local" ]; then
-  "$root/.githooks/post-checkout.local" "$@"
+if [ -x "$hooks_dir/post-checkout.local" ]; then
+  "$hooks_dir/post-checkout.local" "$@"
 fi

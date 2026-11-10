@@ -114,7 +114,7 @@ function expected(root, manifest, source) {
   if (hooks.length) {
     files.set('.githooks/README.md', { bytes: get('agent-config/hooks/README.md'), owner: 'hooks' });
     if (selectedChecks.length) {
-      const dispatcher = get('agent-config/hooks/pre-commit').toString().replace('__HOOK_CHECKS__', selectedChecks.map(name => `  "$root/.githooks/checks/${name}"`).join('\n'));
+      const dispatcher = get('agent-config/hooks/pre-commit').toString().replace('__HOOK_CHECKS__', selectedChecks.map(name => `  "$hooks_dir/checks/${name}"`).join('\n'));
       files.set('.githooks/pre-commit', { bytes: Buffer.from(dispatcher), owner: 'hooks', mode: '100755' });
       for (const name of selectedChecks) files.set(`.githooks/checks/${name}`, { bytes: get(`agent-config/hooks/checks/${name}`), owner: 'hooks', mode: '100755' });
     }
