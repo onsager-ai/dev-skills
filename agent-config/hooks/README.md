@@ -11,6 +11,12 @@ A relative `core.hooksPath` resolves from the active worktree, so linked
 worktrees use their own committed `.githooks` directory. The setting is shared
 by the repository; verify it with `git config --get core.hooksPath`.
 
+Hooks load their checks and `.local` extensions from the directory the hook
+itself runs from, and run formatters against the committing worktree. With a
+relative path, a worktree whose branch predates these hooks runs none; merge the
+base to pick them up. With an absolute path to the primary checkout, every
+worktree runs the primary checkout's hooks, which must be kept current.
+
 `pre-commit` runs the selected checks in manifest order. `rustfmt` runs only
 when staged added, copied, modified, or renamed Rust files exist; it checks the
 working tree, not the index, and reports when a staged Rust file has unstaged
