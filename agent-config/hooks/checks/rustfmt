@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+if ! git diff --cached --name-only --diff-filter=ACMR -- '*.rs' | grep -q .; then
+  exit 0
+fi
+if ! cargo fmt --version >/dev/null 2>&1; then
+  echo 'rustfmt missing: rustup component add rustfmt' >&2
+  exit 1
+fi
+if git diff --cached --name-only --diff-filter=ACMR -- '*.rs' | while IFS= read -r file; do git diff --quiet -- "$file" || printf '%s\n' "$file"; done | grep -q .; then
+  echo 'rustfmt note: staged Rust file also has unstaged changes; this checks the working tree.' >&2
+fi
+if ! cargo fmt --all -- --check; then
+  echo 'run: cargo fmt --all, then re-stage' >&2
+  exit 1
+fi

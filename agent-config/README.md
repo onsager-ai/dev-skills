@@ -14,6 +14,7 @@ or personal MCP configuration is needed to load these workflows.
 | Repository-specific workflows | Consumer `.agents/skills/<name>/` | Repo-owned canonical source |
 | Claude discovery copies | Canonical skills above | Generated regular files |
 | Generator and update/check workflow | `agent-config/` in dev-skills | Pinned generated consumer tooling |
+| Selected Git hooks | `agent-config/hooks/` in dev-skills | Generated `.githooks/` scripts and README; `.local` extensions stay repo-owned |
 | Repository invariants and Claude mechanics | Consumer AGENTS/CLAUDE outside managed block | Repo-owned, retained by sync |
 
 The five common procedures describe operations and outcomes without native tool
@@ -36,16 +37,31 @@ in every session; harness-operations maps Claude and Codex question capabilities
 
 The checked-in `.agents/manifest.json` declares schema 1, source repository
 `onsager-ai/dev-skills`, a full immutable `source.revision`, and arrays named
-`skills`, `rules` and `local_skills`. Relative cross-skill links close the dependency
-set automatically. Complete skill directories, references and binary assets are
-preserved. Source symlinks and references escaping the skill tree are rejected.
-The generated lock records the resolved dependency set and file/rule checksums.
+`skills`, `rules`, `local_skills` and optional `hooks`. Hooks may select
+`rustfmt`, `prettier`, and `primary-checkout-guard`. Relative cross-skill links
+close the dependency set automatically. Complete skill directories, references
+and binary assets are preserved. Source symlinks and references escaping the
+skill tree are rejected. The generated lock records the resolved dependency set
+and file/rule checksums.
 
 For ordinary work, just use the repo. To check drift locally:
 
 ```sh
 node .agents/sync.mjs --check
 ```
+
+When a manifest selects hooks, enable them once in each clone from the repository
+root:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The relative setting makes each linked worktree use its own checkout's generated
+`.githooks` directory. The generated `.githooks/README.md` documents behavior,
+limitations, and executable repo-owned `pre-commit.local` / `post-checkout.local`
+extensions. Generation refuses to overwrite an existing non-generated hook; rename
+or deliberately remove it during onboarding.
 
 To author a local skill, edit its canonical `.agents/skills` source, then regenerate
 with a dev-skills checkout containing the pinned revision. To change shared

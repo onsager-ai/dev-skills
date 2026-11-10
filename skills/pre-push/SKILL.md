@@ -40,6 +40,7 @@ Read [commit preparation](references/commits.md) when staging changes or writing
    required tree. Respect its distinction between advisory and blocking warnings.
    Missing tooling, origin access or environment setup is blocked validation, not
    a pass. Do not suppress failures, weaken assertions or bypass hooks.
+   Report the real exit code for formatter and gate commands; hooks are not evidence.
    Once the required checks pass, repeat them only for changed inputs, a new
    failure or an unresolved concern. Missing optional tooling does not block
    independent work or reviewable PR preparation; describe its validation limit.

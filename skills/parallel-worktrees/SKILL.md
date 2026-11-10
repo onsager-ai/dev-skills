@@ -1,6 +1,6 @@
 ---
 name: parallel-worktrees
-description: Use for parallel agent sessions with git worktree, coordinating isolated branches and pull requests, isolated dev stacks per branch behind a local proxy, or preventing commits on main with a commit guard.
+description: Use for parallel agent sessions with git worktree, coordinating isolated branches and pull requests, or isolated dev stacks per branch behind a local proxy.
 metadata:
   author: Codervisor
   version: 0.1.0
@@ -164,9 +164,10 @@ Read these when you need more depth:
 
 ## Optional add-ons
 
-### Commit guard
+### Repository hooks
 
-Install the optional global pre-commit hook to prevent commits on `main` or `master` and keep detected agent sessions out of the main checkout. It applies to repos marked by an `.envrc` exporting `DEV_HOST`, and delegates to their own hooks. See [commit guard](references/commit-guard.md) for policy, installation, verification, and limits.
+Repository-managed commit and checkout guardrails are generated from the
+consumer manifest. See [repository hooks](references/commit-guard.md).
 
 ### Dev proxy
 

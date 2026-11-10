@@ -11,6 +11,8 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const fail = message => { throw new Error(message); };
 const safe = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(value);
 const digestManifest = manifest => hash(JSON.stringify(manifest));
+const hookNames = new Set(['rustfmt', 'prettier', 'primary-checkout-guard']);
+const preCommitHooks = new Set(['rustfmt', 'prettier']);
 
 function readRegular(root, relative) {
   const parts = relative.split('/');
@@ -54,6 +56,8 @@ function validateManifest(manifest) {
     if (new Set(manifest[key]).size !== manifest[key].length) fail(`Duplicate ${key}`);
   }
   if (manifest.skills.some(name => manifest.local_skills.includes(name))) fail('Shared/local skill name collision');
+  if (manifest.hooks !== undefined && (!Array.isArray(manifest.hooks) || manifest.hooks.some(name => !hookNames.has(name)))) fail('Invalid hooks');
+  if (new Set(manifest.hooks || []).size !== (manifest.hooks || []).length) fail('Duplicate hooks');
 }
 
 function expected(root, manifest, source) {
@@ -105,6 +109,17 @@ function expected(root, manifest, source) {
   files.set('.agents/sync.mjs', { bytes: get('agent-config/sync.mjs'), owner: 'tooling' });
   files.set('.agents/LICENSE.dev-skills', { bytes: get('LICENSE'), owner: 'shared-license' });
   files.set('.github/workflows/agent-config.yml', { bytes: get('agent-config/workflow.yml'), owner: 'tooling' });
+  const hooks = manifest.hooks || [];
+  const selectedChecks = hooks.filter(name => preCommitHooks.has(name));
+  if (hooks.length) {
+    files.set('.githooks/README.md', { bytes: get('agent-config/hooks/README.md'), owner: 'hooks' });
+    if (selectedChecks.length) {
+      const dispatcher = get('agent-config/hooks/pre-commit').toString().replace('__HOOK_CHECKS__', selectedChecks.map(name => `  "$root/.githooks/checks/${name}"`).join('\n'));
+      files.set('.githooks/pre-commit', { bytes: Buffer.from(dispatcher), owner: 'hooks', mode: '100755' });
+      for (const name of selectedChecks) files.set(`.githooks/checks/${name}`, { bytes: get(`agent-config/hooks/checks/${name}`), owner: 'hooks', mode: '100755' });
+    }
+    if (hooks.includes('primary-checkout-guard')) files.set('.githooks/post-checkout', { bytes: get('agent-config/hooks/post-checkout'), owner: 'hooks', mode: '100755' });
+  }
   const rules = manifest.rules.map(name => `- **${name}:** ${get(`agent-config/rules/${name}.md`).toString().trim()}`);
   const block = [START, '## Shared agent conventions (generated)', '', ...rules, END].join('\n');
   return { files, block, resolved_skills: [...shared].sort() };
@@ -170,6 +185,11 @@ export function run(args = process.argv.slice(2)) {
       if (hash(readRegular(root, file)) !== record.sha256) fail(`Restore edited generated file before sync: ${file}`);
     }
     if (hash(blockFrom(readRegular(root, 'AGENTS.md').toString())) !== previous.block_sha256) fail('Restore edited managed block before sync');
+  }
+  for (const file of desired.files.keys()) {
+    if (!file.startsWith('.githooks/') || previous?.files[file]) continue;
+    const destination = path.join(root, file);
+    if (fs.existsSync(destination)) fail(`Refuse to overwrite non-generated hook: ${file}`);
   }
   const text = readRegular(root, 'AGENTS.md').toString();
   const updated = text.includes(START) ? text.replace(blockFrom(text), desired.block) : `${text.trimEnd()}\n\n${desired.block}\n`;

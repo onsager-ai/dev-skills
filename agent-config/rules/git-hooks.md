@@ -1,0 +1,1 @@
+Enable generated repository hooks once per clone with `git config core.hooksPath .githooks`; in linked worktrees this relative path resolves to each checkout's own `.githooks`. Never use `--no-verify`. A passing hook, or an unconfigured hook, is not formatter evidence: run and report the repository gate's real result, for example `cargo fmt --all -- --check; echo exit=$?`.

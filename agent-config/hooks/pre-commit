@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+__HOOK_CHECKS__
+
+if [ -x "$root/.githooks/pre-commit.local" ]; then
+  exec "$root/.githooks/pre-commit.local" "$@"
+fi
