@@ -17,14 +17,16 @@ relative path, a worktree whose branch predates these hooks runs none; merge the
 base to pick them up. With an absolute path to the primary checkout, every
 worktree runs the primary checkout's hooks, which must be kept current.
 
-`pre-commit` runs the selected checks in manifest order. `rustfmt` runs only
+`pre-commit` runs the selected checks in manifest order; only checks listed in
+the manifest's `hooks` are generated. When selected, `rustfmt` runs only
 when staged added, copied, modified, or renamed Rust files exist; it checks the
 working tree, not the index, and reports when a staged Rust file has unstaged
-changes. `prettier` checks staged files with the root dependency only. Missing
+changes, and `prettier` checks staged files with the root dependency only. Missing
 formatters fail with their remedy. Hooks never compile, typecheck, lint, or run
 tests.
 
-`post-checkout` keeps a clean primary checkout on `main`; linked worktrees are
+When `primary-checkout-guard` is selected, `post-checkout` keeps a clean primary
+checkout on `main`; linked worktrees are
 unaffected. It warns instead of reverting a dirty primary checkout. It runs
 `post-checkout.local` after the guard. Executable repo-owned
 `pre-commit.local` runs after generated pre-commit checks. Local files are never

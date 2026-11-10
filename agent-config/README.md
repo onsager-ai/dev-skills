@@ -85,6 +85,10 @@ Node 22 and Git are maintainer/CI prerequisites, not agent-session setup steps.
 The generated workflow verifies every PR against the source SHA using the trusted
 upstream checker. A weekly schedule and manual dispatch fetch current dev-skills
 main, regenerate and verify the selected subset, and propose a draft update PR.
+Generation and verification run in a read-only job without persisted credentials;
+a separate publishing job holds write permission, executes no generated or
+upstream code, and only applies and commits the verified patch (including
+`.githooks`).
 Existing PRs for that revision are reused by skipping duplicate proposals. The
 workflow never merges or installs into a developer profile.
 
