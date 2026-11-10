@@ -37,8 +37,62 @@ jobs:
       - name: Verify generated files against pinned upstream
         run: node .agent-source/agent-config/sync.mjs --check --source .agent-source
 
-  update:
+  generate:
+    # Runs upstream generator code with a read-only token and no persisted credentials.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base: ${{ steps.generate.outputs.base }}
+      revision: ${{ steps.generate.outputs.revision }}
+      changed: ${{ steps.generate.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate update without write credentials
+        id: generate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git clone --quiet --depth 1 https://github.com/onsager-ai/dev-skills.git "$RUNNER_TEMP/dev-skills"
+          revision=$(git -C "$RUNNER_TEMP/dev-skills" rev-parse HEAD)
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          existing=$(gh pr list --head "bot/agent-config-${revision:0:12}" --state all --json number --jq 'length')
+          if [ "$existing" -gt 0 ]; then
+            echo "An update for this source revision already exists."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node .agents/sync.mjs --check
+          node "$RUNNER_TEMP/dev-skills/agent-config/sync.mjs" --source "$RUNNER_TEMP/dev-skills" --revision "$revision"
+          node "$RUNNER_TEMP/dev-skills/agent-config/sync.mjs" --check --source "$RUNNER_TEMP/dev-skills"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached --binary > "$RUNNER_TEMP/agent-config.patch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - if: steps.generate.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-config-patch
+          path: ${{ runner.temp }}/agent-config.patch
+          retention-days: 1
+
+  publish:
+    # Holds write credentials but executes no generated or upstream code; it only applies the patch.
+    needs: generate
+    if: needs.generate.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -46,37 +100,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
-      - uses: actions/setup-node@v4
+          ref: ${{ needs.generate.outputs.base }}
+      - uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-      - name: Prepare reviewed update
+          name: agent-config-patch
+          path: ${{ runner.temp }}/patch
+      - name: Publish reviewed update
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          REVISION: ${{ needs.generate.outputs.revision }}
         run: |
-          git clone --quiet --depth 1 https://github.com/onsager-ai/dev-skills.git "$RUNNER_TEMP/dev-skills"
-          revision=$(git -C "$RUNNER_TEMP/dev-skills" rev-parse HEAD)
-          branch="bot/agent-config-${revision:0:12}"
-          existing=$(gh pr list --head "$branch" --state all --json number --jq 'length')
-          if [ "$existing" -gt 0 ]; then
-            echo "An update for this source revision already exists."
-            exit 0
-          fi
-          node .agents/sync.mjs --check
-          node "$RUNNER_TEMP/dev-skills/agent-config/sync.mjs" --source "$RUNNER_TEMP/dev-skills" --revision "$revision"
-          node .agents/sync.mjs --check --source "$RUNNER_TEMP/dev-skills"
-          if git diff --quiet; then exit 0; fi
+          branch="bot/agent-config-${REVISION:0:12}"
           git switch -c "$branch"
+          git apply --index "$RUNNER_TEMP/patch/agent-config.patch"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- AGENTS.md .agents .claude/skills .github/workflows/agent-config.yml
           git commit -m "chore: sync agent configuration from dev-skills"
           git push origin "$branch"
           cat > "$RUNNER_TEMP/agent-config-pr.md" <<'BODY'
-          Update selected shared prompts, skill dependencies and native discovery projections from one immutable dev-skills revision. Repository-owned guidance and local canonical skills retain ownership.
+          Update selected shared prompts, skill dependencies, generated hooks and native discovery projections from one immutable dev-skills revision. Repository-owned guidance, local canonical skills and `.local` hook extensions retain ownership.
 
-          Validation: offline drift check and exact pinned-upstream comparison passed before publication. The repository Actions token does not trigger additional PR workflows; run required product checks through the repository's supported process before merging. This workflow never merges.
+          Validation: offline drift check and exact pinned-upstream comparison passed in a read-only job before publication; the publishing job only applied that patch. The repository Actions token does not trigger additional PR workflows; run required product checks through the repository's supported process before merging. This workflow never merges.
           BODY
           gh pr create --draft --base "$BASE_BRANCH" --head "$branch" --title "chore: update shared agent configuration" --body-file "$RUNNER_TEMP/agent-config-pr.md"
