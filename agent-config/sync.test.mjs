@@ -96,6 +96,13 @@ test('removing a selection removes stale managed dependencies and leaves local s
   assert.deepEqual(fs.readdirSync(path.join(f.repo,'.agents/skills')),['local']);
 });
 
+test('a repo selecting no skills generates and checks with no skill directories',t => {
+  const f=fixture(t); fs.rmSync(path.join(f.repo,'.agents/skills'),{recursive:true});
+  f.manifest.skills=[];f.manifest.local_skills=[];f.manifest.hooks=['primary-checkout-guard'];f.save();f.sync();
+  assert.equal(fs.existsSync(path.join(f.repo,'.agents/skills')),false);
+  f.check();f.check(true);
+});
+
 test('generates selected hooks, records modes, preserves local extensions and rejects unowned hooks',t => {
   const f=fixture(t); f.manifest.hooks=['rustfmt','prettier','primary-checkout-guard'];f.save();f.sync();f.check(true);
   const lock=JSON.parse(fs.readFileSync(path.join(f.repo,'.agents/lock.json')));
